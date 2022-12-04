@@ -1,0 +1,202 @@
+package main
+
+import (
+	api "DUTclock/WorkingWithAPI"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// TakeTime показывет сколько до начала/конца пары (надо оптимизировать)
+func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
+
+	var (
+		dateNow       = time.Now()
+		result        []WeekJSON
+		count         = 0
+		paruNaSegodna = 0
+		dateNowParsed time.Time
+	)
+
+	if !isWeekend(dateNow) {
+		h, min, _ := dateNow.Clock()
+		y, mon, d := dateNow.Date()
+		dateString := strconv.Itoa(h) + ":" + strconv.Itoa(min) + " " + strconv.Itoa(d) + "." + strconv.Itoa(int(mon)) + "." + strconv.Itoa(y)
+		if h < 10 {
+			var err error
+			dateNowParsed, err = time.Parse("3:4 2.1.2006", dateString)
+			if err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			var err error
+			dateNowParsed, err = time.Parse("15:4 2.1.2006", dateString)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+
+		result = ReadOfflineJSON()
+
+		// "1", "1", "1576", "CURRENT"
+		for _, rec := range result {
+
+			//dateSet, err := time.Parse("02.01.2006", rec.Day)
+
+			StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.Day)
+
+			FinishTime, err := time.Parse("15:04 02.01.2006", rec.FinishAt+" "+rec.Day)
+
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+
+			if dateNowParsed.Day() == StartTime.Day() &&
+				dateNowParsed.Month() == StartTime.Month() &&
+				dateNowParsed.Year() == StartTime.Year() {
+
+				paruNaSegodna++
+
+				if dateNowParsed.Before(StartTime) {
+					diff = StartTime.Sub(dateNowParsed)
+
+					return true, "До початку: " + PrettyPrint(rec.Name), diff
+				} else if dateNowParsed.Before(FinishTime) {
+					diff = FinishTime.Sub(dateNowParsed)
+
+					return true, "До кінця: " + PrettyPrint(rec.Name), diff
+				} else {
+					count++
+				}
+			}
+		}
+		if paruNaSegodna == count {
+			//fmt.Println("Пари закінчилися :)")
+			return false, "Пари закінчилися :)", diff
+		}
+	} else {
+		//Вывест что пар нету
+		//fmt.Println("Сьогодні немає пар :)")
+		return false, "Сьогодні немає пар :)", diff
+	}
+
+	return false, "Дикая ошибка", diff
+}
+
+// ReadOfflineJSON читает json файл
+func ReadOfflineJSON() []WeekJSON {
+	jsonFile, err := os.Open("WeekJSON.json")
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var Week []WeekJSON
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	json.Unmarshal(byteValue, &Week)
+
+	jsonFile.Close()
+
+	return Week
+}
+
+// MyError custom error
+type MyError struct{}
+
+func (m *MyError) Error() string {
+	return "No internet connection"
+}
+
+// UpdateOfflineJSON читает json из url и записывет его в файл
+func UpdateOfflineJSON() (Updated bool, error error) {
+	result, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "CURRENT")
+	if err != nil {
+		return false, &MyError{}
+	}
+	file, _ := json.MarshalIndent(result, "", " ")
+
+	_ = ioutil.WriteFile("WeekJSON.json", file, 0644)
+	return true, nil
+}
+
+// isWeekend проверка на выходной
+func isWeekend(t time.Time) bool {
+	t = t.UTC()
+	switch t.Weekday() {
+	case time.Friday:
+		h, _, _ := t.Clock()
+		if h >= 12+10 {
+			return true
+		}
+	case time.Saturday:
+		return true
+	case time.Sunday:
+		h, m, _ := t.Clock()
+		if h < 12+10 {
+			return true
+		}
+		if h == 12+10 && m <= 5 {
+			return true
+		}
+	}
+	return false
+}
+
+// PrettyPrint вывод текста без ковычек ""
+func PrettyPrint(text any) string {
+	s, _ := json.Marshal(text)
+	res := strings.ReplaceAll(string(s), "\"", "")
+	return res
+}
+
+// TakeWeek читает WeekJSON из url
+func TakeWeek(Faculty, Course, Group int, Week string) ([]WeekJSON, error) {
+
+	// 1/1/1576/NEXT
+	url := "https://dutcalendar-tracker.lwjerri.ml/v1/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+
+	// Get request
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("No response from request")
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Error", err)
+		}
+	}(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	var result []WeekJSON
+	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
+		fmt.Println("Can not unmarshal JSON")
+		return nil, err
+	}
+
+	return result, err
+}
+
+// WeekJSON структура json-а
+type WeekJSON struct {
+	AddedAt     *string `json:"addedAt"`
+	Cabinet     *string `json:"cabinet"`
+	FinishAt    string  `json:"finishAt"`
+	Lector      *string `json:"lector"`
+	StartAt     string  `json:"startAt"`
+	Name        *string `json:"name"`
+	ShortName   *string `json:"shortName"`
+	DayName     string  `json:"dayName"`
+	NumberByDay string  `json:"numberByDay"`
+	Day         string  `json:"day"`
+}
