@@ -7,7 +7,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"log"
 	"time"
 )
 
@@ -49,7 +48,7 @@ func main() {
 	w.SetIcon(ic)
 
 	// set size
-	w.Resize(fyne.NewSize(400, 400))
+	w.Resize(fyne.NewSize(492, 484))
 	w.SetFixedSize(true)
 
 	// add app name
@@ -60,10 +59,12 @@ func main() {
 	TimerLabel := widget.NewLabel("")
 
 	//update kit
+	FacultySelector := widget.NewSelect([]string{}, func(value string) {})
 	OnlineLabel := widget.NewLabel("")
 	LastUpdateLabel := widget.NewLabel("")
 	UpdateButton := widget.NewButton("Update", func() {
 		CheckConn(OnlineLabel, LastUpdateLabel, w, true)
+		FacultySelector.Options = api.FacultyJSONtoString()
 	})
 	UpdateButton.Hidden = true
 
@@ -71,9 +72,9 @@ func main() {
 	api.ReadUserConf()
 	if api.GroupID != 0 {
 		UpdateButton.Hidden = false
-		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
 		CheckConn(OnlineLabel, LastUpdateLabel, w, false)
 		UpdateTime(ParaNameLabel, TimerLabel)
+		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
 	}
 
 	// start update timer every minute
@@ -110,13 +111,11 @@ func main() {
 	CourseSelector.Selected = api.CourseName
 
 	FacultyLabel := widget.NewLabel("Faculty")
-	FacultySelector := widget.NewSelect(api.FacultyJSONtoString(), func(value string) {
-		log.Println("Faculty", value)
+	FacultySelector = widget.NewSelect(api.FacultyJSONtoString(), func(value string) {
 		GroupSelector.Options = []string{}
 		CourseSelector.Selected = ""
 		GroupSelector.Selected = ""
 		CourseSelector.Options = api.CourseJSONtoString(value)
-
 	})
 	FacultySelector.Selected = api.FacultyName
 

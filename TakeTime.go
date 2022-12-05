@@ -42,44 +42,52 @@ func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
 			}
 		}
 
-		result = ReadOfflineJSON()
+		isSecondJSON := false
 
-		// "1", "1", "1576", "CURRENT"
-		for _, rec := range result {
+		result = ReadOfflineJSON("CURRENT_WeekJSON.json")
+		for i := 1; i <= 2; i++ {
 
-			//dateSet, err := time.Parse("02.01.2006", rec.Day)
+			// "1", "1", "1576", "CURRENT"
+			for _, rec := range result {
 
-			StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.Day)
+				StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.Day)
 
-			FinishTime, err := time.Parse("15:04 02.01.2006", rec.FinishAt+" "+rec.Day)
+				FinishTime, err := time.Parse("15:04 02.01.2006", rec.FinishAt+" "+rec.Day)
 
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
 
-			if dateNowParsed.Day() == StartTime.Day() &&
-				dateNowParsed.Month() == StartTime.Month() &&
-				dateNowParsed.Year() == StartTime.Year() {
+				if dateNowParsed.Day() == StartTime.Day() &&
+					dateNowParsed.Month() == StartTime.Month() &&
+					dateNowParsed.Year() == StartTime.Year() {
 
-				paruNaSegodna++
+					paruNaSegodna++
 
-				if dateNowParsed.Before(StartTime) {
-					diff = StartTime.Sub(dateNowParsed)
+					if dateNowParsed.Before(StartTime) {
+						diff = StartTime.Sub(dateNowParsed)
 
-					return true, "До початку: " + PrettyPrint(rec.Name), diff
-				} else if dateNowParsed.Before(FinishTime) {
-					diff = FinishTime.Sub(dateNowParsed)
+						return true, "До початку: " + PrettyPrint(rec.Name), diff
+					} else if dateNowParsed.Before(FinishTime) {
+						diff = FinishTime.Sub(dateNowParsed)
 
-					return true, "До кінця: " + PrettyPrint(rec.Name), diff
-				} else {
-					count++
+						return true, "До кінця: " + PrettyPrint(rec.Name), diff
+					} else {
+						count++
+					}
 				}
 			}
-		}
-		if paruNaSegodna == count {
-			//fmt.Println("Пари закінчилися :)")
-			return false, "Пари закінчилися :)", diff
+			if paruNaSegodna == count {
+				if isSecondJSON {
+					return false, "Пари закінчилися :)", diff
+				} else {
+					isSecondJSON = true
+					result = ReadOfflineJSON("NEXT_WeekJSON.json")
+					count = 0
+					paruNaSegodna = 0
+				}
+			}
 		}
 	} else {
 		//Вывест что пар нету
@@ -91,8 +99,8 @@ func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
 }
 
 // ReadOfflineJSON читает json файл
-func ReadOfflineJSON() []WeekJSON {
-	jsonFile, err := os.Open("WeekJSON.json")
+func ReadOfflineJSON(jsonName string) []WeekJSON {
+	jsonFile, err := os.Open(jsonName)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
@@ -118,13 +126,22 @@ func (m *MyError) Error() string {
 
 // UpdateOfflineJSON читает json из url и записывет его в файл
 func UpdateOfflineJSON() (Updated bool, error error) {
-	result, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "CURRENT")
+	CURRENT, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "CURRENT")
 	if err != nil {
 		return false, &MyError{}
 	}
-	file, _ := json.MarshalIndent(result, "", " ")
+	file1, _ := json.MarshalIndent(CURRENT, "", " ")
 
-	_ = ioutil.WriteFile("WeekJSON.json", file, 0644)
+	_ = ioutil.WriteFile("CURRENT_WeekJSON.json", file1, 0644)
+
+	NEXT, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "NEXT")
+	if err != nil {
+		return false, &MyError{}
+	}
+	file2, _ := json.MarshalIndent(NEXT, "", " ")
+
+	_ = ioutil.WriteFile("NEXT_WeekJSON.json", file2, 0644)
+
 	return true, nil
 }
 
