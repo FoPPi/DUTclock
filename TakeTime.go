@@ -4,17 +4,20 @@ import (
 	api "DUTclock/WorkingWithAPI"
 	"encoding/json"
 	"fmt"
+	"fyne.io/fyne/v2"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 )
 
 // TakeTime показывет сколько до начала/конца пары (надо оптимизировать)
-func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
+func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration) {
 
 	var (
 		dateNow       = time.Now()
@@ -44,7 +47,7 @@ func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
 
 		isSecondJSON := false
 
-		result = ReadOfflineJSON("CURRENT_WeekJSON.json")
+		result = ReadOfflineJSON("files/CURRENT_WeekJSON.json")
 		for i := 1; i <= 2; i++ {
 
 			// "1", "1", "1576", "CURRENT"
@@ -65,6 +68,12 @@ func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
 
 					paruNaSegodna++
 
+					if StartTime.Equal(dateNowParsed) {
+						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(rec.Name)))
+					} else if FinishTime.Equal(dateNowParsed) {
+						app.SendNotification(fyne.NewNotification("Пара закинчилася", "Ливай нахуй"))
+					}
+
 					if dateNowParsed.Before(StartTime) {
 						diff = StartTime.Sub(dateNowParsed)
 
@@ -83,7 +92,7 @@ func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
 					return false, "Пари закінчилися :)", diff
 				} else {
 					isSecondJSON = true
-					result = ReadOfflineJSON("NEXT_WeekJSON.json")
+					result = ReadOfflineJSON("files/NEXT_WeekJSON.json")
 					count = 0
 					paruNaSegodna = 0
 				}
@@ -132,7 +141,14 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 	}
 	file1, _ := json.MarshalIndent(CURRENT, "", " ")
 
-	_ = ioutil.WriteFile("CURRENT_WeekJSON.json", file1, 0644)
+	var nestedDir = "files"
+	path := filepath.Join(".", nestedDir)
+	erro := os.MkdirAll(path, 0777)
+	if erro != nil {
+		log.Fatal(erro)
+	}
+
+	_ = ioutil.WriteFile("files/CURRENT_WeekJSON.json", file1, 0644)
 
 	NEXT, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "NEXT")
 	if err != nil {
@@ -140,7 +156,7 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 	}
 	file2, _ := json.MarshalIndent(NEXT, "", " ")
 
-	_ = ioutil.WriteFile("NEXT_WeekJSON.json", file2, 0644)
+	_ = ioutil.WriteFile("files/NEXT_WeekJSON.json", file2, 0644)
 
 	return true, nil
 }

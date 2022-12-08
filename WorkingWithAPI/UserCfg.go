@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 )
 
 func ReadUserConf() {
-	jsonFile, err := os.Open("UserCfg.json")
+	jsonFile, err := os.Open("files/UserCfg.json")
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
@@ -57,7 +59,24 @@ func WriteUserConf() {
 		return
 	}
 
-	_ = ioutil.WriteFile("UserCfg.json", jsonData, 0644)
+	//_, erro := os.Stat("files")
+	//
+	//if os.IsNotExist(err) {
+	//	errDir := os.Mkdir("./files", os.FileMode(0522))
+	//	if errDir != nil {
+	//		log.Fatal(erro)
+	//	}
+	//
+	//}
+
+	var nestedDir = "files"
+	path := filepath.Join(".", nestedDir)
+	erro := os.MkdirAll(path, 0777)
+	if erro != nil {
+		log.Fatal(erro)
+	}
+
+	_ = ioutil.WriteFile("files/UserCfg.json", jsonData, 0644)
 }
 
 type UserJSON struct {

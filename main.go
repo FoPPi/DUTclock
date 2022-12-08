@@ -11,8 +11,8 @@ import (
 )
 
 // UpdateTime Show time to pare
-func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label) {
-	paraExist, paraName, diff := TakeTime()
+func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.App) {
+	paraExist, paraName, diff := TakeTime(app)
 	if paraExist {
 		ParaNameLabel.SetText(paraName)
 		TimerLabel.SetText(diff.String())
@@ -73,14 +73,14 @@ func main() {
 	if api.GroupID != 0 {
 		UpdateButton.Hidden = false
 		CheckConn(OnlineLabel, LastUpdateLabel, w, false)
-		UpdateTime(ParaNameLabel, TimerLabel)
+		UpdateTime(ParaNameLabel, TimerLabel, a)
 		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
 	}
 
 	// start update timer every minute
 	go func() {
 		for range time.Tick(time.Minute) {
-			UpdateTime(ParaNameLabel, TimerLabel)
+			UpdateTime(ParaNameLabel, TimerLabel, a)
 		}
 	}()
 
@@ -94,30 +94,41 @@ func main() {
 	// add selectors
 	GroupLabel := widget.NewLabel("Group")
 	GroupSelector := widget.NewSelect([]string{}, func(value string) {
-		api.TakeGroupID(value)
+		if value != api.GroupName {
+			api.TakeGroupID(value)
 
-		UpdateButton.Hidden = false
-		CheckConn(OnlineLabel, LastUpdateLabel, w, false)
-		UpdateTime(ParaNameLabel, TimerLabel)
-		api.WriteUserConf()
+			UpdateButton.Hidden = false
+			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+			UpdateTime(ParaNameLabel, TimerLabel, a)
+			api.WriteUserConf()
+		}
 	})
-	GroupSelector.Selected = api.GroupName
 
 	CourseLabel := widget.NewLabel("Course")
 	CourseSelector := widget.NewSelect([]string{}, func(value string) {
-		GroupSelector.Selected = ""
-		GroupSelector.Options = api.GroupJSONtoString(value)
+		if value != api.CourseName {
+			GroupSelector.Selected = ""
+			GroupSelector.Options = api.GroupJSONtoString(value)
+		}
 	})
-	CourseSelector.Selected = api.CourseName
 
 	FacultyLabel := widget.NewLabel("Faculty")
 	FacultySelector = widget.NewSelect(api.FacultyJSONtoString(), func(value string) {
-		GroupSelector.Options = []string{}
-		CourseSelector.Selected = ""
-		GroupSelector.Selected = ""
-		CourseSelector.Options = api.CourseJSONtoString(value)
+		if value != api.FacultyName {
+			GroupSelector.Options = []string{}
+			CourseSelector.Selected = ""
+			GroupSelector.Selected = ""
+			CourseSelector.Options = api.CourseJSONtoString(value)
+		}
 	})
-	FacultySelector.Selected = api.FacultyName
+
+	if api.GroupID != 0 {
+		GroupSelector.Selected = api.GroupName
+		CourseSelector.Selected = api.CourseName
+		FacultySelector.Selected = api.FacultyName
+		CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
+		GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
+	}
 
 	// add content
 	w.SetContent(container.NewVBox(
