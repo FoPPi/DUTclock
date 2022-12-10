@@ -12,5 +12,5 @@ var (
 
 	LastUpdate string = ""
 
-	Version string = "v1.0.0"
+	Version string = "v1.1.0"
 )

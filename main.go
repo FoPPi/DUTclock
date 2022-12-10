@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/pkg/browser"
 	"time"
 )
 
@@ -43,6 +44,9 @@ func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.
 			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
 			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
 			InternetExist = true
+
+			CheckUpdate(w)
+
 		}
 	} else {
 		if SendError {
@@ -50,6 +54,20 @@ func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.
 		}
 
 		OnlineLabel.SetText("Offline")
+	}
+}
+
+func CheckUpdate(w fyne.Window) {
+	newVersion, release := api.CheckUpdateOnGitHub()
+	if newVersion {
+		dialog.ShowConfirm("Update", "New version available", func(b bool) {
+			if b {
+				err := browser.OpenURL(release)
+				if err != nil {
+					println(err)
+				}
+			}
+		}, w)
 	}
 }
 
@@ -84,6 +102,7 @@ func main() {
 	UpdateButton := widget.NewButton("Update", func() {
 		CheckConn(OnlineLabel, LastUpdateLabel, w, true)
 		FacultySelector.Options = api.FacultyJSONtoString()
+
 	})
 	UpdateButton.Hidden = true
 
@@ -141,6 +160,7 @@ func main() {
 
 	if InternetExist {
 		FacultySelector.Options = api.FacultyJSONtoString()
+		CheckUpdate(w)
 	}
 
 	// add selectors names if is not first start
