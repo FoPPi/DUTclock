@@ -14,15 +14,24 @@ func ReadUserConf() {
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	var UserCFG UserJSON
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	json.Unmarshal(byteValue, &UserCFG)
+	err = json.Unmarshal(byteValue, &UserCFG)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	jsonFile.Close()
+	err = jsonFile.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	FacultyName = UserCFG.Faculty.FacultyName
 	FacultyID = UserCFG.Faculty.FacultyID
@@ -58,16 +67,6 @@ func WriteUserConf() {
 		fmt.Printf("could not marshal json: %s\n", err)
 		return
 	}
-
-	//_, erro := os.Stat("files")
-	//
-	//if os.IsNotExist(err) {
-	//	errDir := os.Mkdir("./files", os.FileMode(0522))
-	//	if errDir != nil {
-	//		log.Fatal(erro)
-	//	}
-	//
-	//}
 
 	var nestedDir = "files"
 	path := filepath.Join(".", nestedDir)

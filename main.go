@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+var (
+	InternetExist   bool = true
+	FacultySelector      = widget.NewSelect([]string{}, func(value string) {})
+	CourseSelector       = widget.NewSelect([]string{}, func(value string) {})
+	GroupSelector        = widget.NewSelect([]string{}, func(value string) {})
+)
+
 // UpdateTime Show time to pare
 func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.App) {
 	paraExist, paraName, diff := TakeTime(app)
@@ -26,10 +33,17 @@ func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.
 func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.Window, SendError bool) {
 	updated, err := UpdateOfflineJSON()
 	if updated {
-		time := time.Now().String()
-		api.LastUpdate = time[0:16]
+		t := time.Now().String()
+		api.LastUpdate = t[0:16]
 		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
 		OnlineLabel.SetText("Online")
+
+		if !InternetExist {
+			FacultySelector.Options = api.FacultyJSONtoString()
+			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
+			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
+			InternetExist = true
+		}
 	} else {
 		if SendError {
 			dialog.ShowError(err, w)
@@ -40,7 +54,7 @@ func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.
 }
 
 func main() {
-	a := app.New()
+	a := app.NewWithID("DUTclock")
 	w := a.NewWindow("DUTclock")
 
 	// set icon
@@ -58,8 +72,13 @@ func main() {
 	ParaNameLabel := widget.NewLabel("")
 	TimerLabel := widget.NewLabel("")
 
+	// check internet connection
+	status, _ := Ping("google.com")
+	if status != 200 {
+		InternetExist = false
+	}
+
 	//update kit
-	FacultySelector := widget.NewSelect([]string{}, func(value string) {})
 	OnlineLabel := widget.NewLabel("")
 	LastUpdateLabel := widget.NewLabel("")
 	UpdateButton := widget.NewButton("Update", func() {
@@ -86,14 +105,14 @@ func main() {
 
 	// start checking connection every hour
 	go func() {
-		for range time.Tick(time.Hour) {
+		for range time.Tick(time.Hour / 2) {
 			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
 		}
 	}()
 
 	// add selectors
 	GroupLabel := widget.NewLabel("Group")
-	GroupSelector := widget.NewSelect([]string{}, func(value string) {
+	GroupSelector = widget.NewSelect([]string{}, func(value string) {
 		if value != api.GroupName {
 			api.TakeGroupID(value)
 
@@ -105,15 +124,13 @@ func main() {
 	})
 
 	CourseLabel := widget.NewLabel("Course")
-	CourseSelector := widget.NewSelect([]string{}, func(value string) {
-		if value != api.CourseName {
-			GroupSelector.Selected = ""
-			GroupSelector.Options = api.GroupJSONtoString(value)
-		}
+	CourseSelector = widget.NewSelect([]string{}, func(value string) {
+		GroupSelector.Selected = ""
+		GroupSelector.Options = api.GroupJSONtoString(value)
 	})
 
 	FacultyLabel := widget.NewLabel("Faculty")
-	FacultySelector = widget.NewSelect(api.FacultyJSONtoString(), func(value string) {
+	FacultySelector = widget.NewSelect([]string{}, func(value string) {
 		if value != api.FacultyName {
 			GroupSelector.Options = []string{}
 			CourseSelector.Selected = ""
@@ -122,12 +139,19 @@ func main() {
 		}
 	})
 
+	if InternetExist {
+		FacultySelector.Options = api.FacultyJSONtoString()
+	}
+
+	// add selectors names if is not first start
 	if api.GroupID != 0 {
 		GroupSelector.Selected = api.GroupName
 		CourseSelector.Selected = api.CourseName
 		FacultySelector.Selected = api.FacultyName
-		CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
-		GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
+		if InternetExist {
+			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
+			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
+		}
 	}
 
 	// add content
@@ -162,4 +186,5 @@ func main() {
 
 	// show window
 	w.ShowAndRun()
+
 }

@@ -9,10 +9,10 @@ import (
 )
 
 func TakeFacultyID(value string) {
-	json, _ := TakeFaculty()
+	faculty, _ := TakeFaculty()
 
 	FacultyName = value
-	for _, rec := range json {
+	for _, rec := range faculty {
 		if value == rec.Name {
 			FacultyID = rec.Id
 		}
@@ -21,11 +21,11 @@ func TakeFacultyID(value string) {
 }
 
 func FacultyJSONtoString() []string {
-	json, _ := TakeFaculty()
+	faculty, _ := TakeFaculty()
 
-	sArr := make([]string, len(json))
+	sArr := make([]string, len(faculty))
 	counter := 0
-	for _, rec := range json {
+	for _, rec := range faculty {
 		sArr[counter] = rec.Name
 		counter++
 	}

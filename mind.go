@@ -119,9 +119,15 @@ func ReadOfflineJSON(jsonName string) []WeekJSON {
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	json.Unmarshal(byteValue, &Week)
+	err = json.Unmarshal(byteValue, &Week)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	jsonFile.Close()
+	err = jsonFile.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	return Week
 }
@@ -161,6 +167,56 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 	return true, nil
 }
 
+// TakeWeek читает WeekJSON из url
+func TakeWeek(Faculty, Course, Group int, Week string) ([]WeekJSON, error) {
+
+	// 1/1/1576/NEXT
+	url := "https://dutcalendar-tracker.lwjerri.ml/v1/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+
+	// Get request
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("No response from request")
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Error", err)
+		}
+	}(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
+
+	var result []WeekJSON
+	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
+		fmt.Println("Can not unmarshal JSON")
+		return nil, err
+	}
+
+	return result, err
+}
+
+// Ping site and return status code
+func Ping(domain string) (int, error) {
+	var client = http.Client{}
+
+	url := "http://" + domain
+	req, err := http.NewRequest("HEAD", url, nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	err = resp.Body.Close()
+	if err != nil {
+		return 0, err
+	}
+	return resp.StatusCode, nil
+}
+
 // isWeekend проверка на выходной
 func isWeekend(t time.Time) bool {
 	t = t.UTC()
@@ -189,35 +245,6 @@ func PrettyPrint(text any) string {
 	s, _ := json.Marshal(text)
 	res := strings.ReplaceAll(string(s), "\"", "")
 	return res
-}
-
-// TakeWeek читает WeekJSON из url
-func TakeWeek(Faculty, Course, Group int, Week string) ([]WeekJSON, error) {
-
-	// 1/1/1576/NEXT
-	url := "https://dutcalendar-tracker.lwjerri.ml/v1/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
-
-	// Get request
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println("No response from request")
-		return nil, err
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("Error", err)
-		}
-	}(resp.Body)
-	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
-
-	var result []WeekJSON
-	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
-		fmt.Println("Can not unmarshal JSON")
-		return nil, err
-	}
-
-	return result, err
 }
 
 // WeekJSON структура json-а

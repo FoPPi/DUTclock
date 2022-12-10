@@ -11,4 +11,6 @@ var (
 	GroupID   int    = 0
 
 	LastUpdate string = ""
+
+	Version string = "v1.0.0"
 )
