@@ -13,7 +13,7 @@ func TakeGroupID(value string) {
 	GroupJson, _ := TakeGroup(FacultyID, CourseID)
 
 	GroupName = value
-	for _, rec := range GroupJson {
+	for _, rec := range GroupJson.Data {
 		if value == rec.Name {
 			GroupID = rec.Id
 		}
@@ -26,9 +26,9 @@ func GroupJSONtoString(value string) []string {
 
 	GroupJson, _ := TakeGroup(FacultyID, CourseID)
 
-	sArr := make([]string, len(GroupJson))
+	sArr := make([]string, len(GroupJson.Data))
 	counter := 0
-	for _, rec := range GroupJson {
+	for _, rec := range GroupJson.Data {
 		sArr[counter] = rec.Name
 		counter++
 	}
@@ -38,8 +38,8 @@ func GroupJSONtoString(value string) []string {
 }
 
 // TakeGroup читает GroupJSON из url
-func TakeGroup(FacultyID, CourseID int) ([]GroupJSON, error) {
-	url := "https://dutcalendar-tracker.lwjerri.ml/v1/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
+func TakeGroup(FacultyID, CourseID int) (*GroupJSON, error) {
+	url := "https://dut-api.lwjerri.ml/v3/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
 
 	// Get request
 	resp, err := http.Get(url)
@@ -55,7 +55,7 @@ func TakeGroup(FacultyID, CourseID int) ([]GroupJSON, error) {
 	}(resp.Body)
 	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
 
-	var result []GroupJSON
+	var result *GroupJSON
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
 		fmt.Println("Can not unmarshal JSON")
 		return nil, err
@@ -66,6 +66,11 @@ func TakeGroup(FacultyID, CourseID int) ([]GroupJSON, error) {
 
 // GroupJSON структура json-а
 type GroupJSON struct {
-	Name string `json:"name"`
-	Id   int    `json:"id"`
+	IsCachedResponse bool   `json:"isCachedResponse"`
+	IsDataFromDB     bool   `json:"isDataFromDB"`
+	DataHash         string `json:"dataHash"`
+	Data             []struct {
+		Name string `json:"name"`
+		Id   int    `json:"id"`
+	} `json:"data"`
 }

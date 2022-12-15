@@ -42,6 +42,9 @@ func ReadUserConf() {
 	GroupName = UserCFG.Group.GroupName
 	GroupID = UserCFG.Group.GroupID
 
+	LessonName = UserCFG.Settings.LessonName
+	LessonType = UserCFG.Settings.LessonType
+
 	LastUpdate = UserCFG.LastUpdate
 }
 
@@ -58,6 +61,10 @@ func WriteUserConf() {
 		Group: Group{
 			GroupName: GroupName,
 			GroupID:   GroupID,
+		},
+		Settings: Settings{
+			LessonName: LessonName,
+			LessonType: LessonType,
 		},
 		LastUpdate: LastUpdate,
 	}
@@ -79,10 +86,11 @@ func WriteUserConf() {
 }
 
 type UserJSON struct {
-	Faculty    Faculty `json:"faculty"`
-	Course     Course  `json:"course"`
-	Group      Group   `json:"group"`
-	LastUpdate string  `json:"last_update"`
+	Faculty    Faculty  `json:"faculty"`
+	Course     Course   `json:"course"`
+	Group      Group    `json:"group"`
+	Settings   Settings `json:"settings"`
+	LastUpdate string   `json:"last_update"`
 }
 
 type Faculty struct {
@@ -98,4 +106,9 @@ type Course struct {
 type Group struct {
 	GroupName string `json:"group_name"`
 	GroupID   int    `json:"group_id"`
+}
+
+type Settings struct {
+	LessonName bool `json:"lesson_name"`
+	LessonType bool `json:"lesson_type"`
 }

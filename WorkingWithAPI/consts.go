@@ -12,5 +12,8 @@ var (
 
 	LastUpdate string = ""
 
-	Version string = "v1.1.0"
+	LessonName bool = true // true - long | false - short
+	LessonType bool = true // true - show | false - hide
+
+	Version string = "v2.0.0"
 )

@@ -4,6 +4,7 @@ import (
 	api "DUTclock/WorkingWithAPI"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -80,11 +81,14 @@ func main() {
 	w.SetIcon(ic)
 
 	// set size
-	w.Resize(fyne.NewSize(492, 484))
+	w.Resize(fyne.NewSize(492, 492))
 	w.SetFixedSize(true)
 
+	// Time tab
+	//---------------------------------------------------------------------
+
 	// add app name
-	AppLabel := widget.NewLabel("DUTclock")
+	//AppLabel := widget.NewLabel("DUTclock")
 
 	// add name of para and timer
 	ParaNameLabel := widget.NewLabel("")
@@ -174,35 +178,116 @@ func main() {
 		}
 	}
 
-	// add content
-	w.SetContent(container.NewVBox(
-		container.NewVBox(container.NewCenter(
-			AppLabel,
+	//Settings tab
+	//---------------------------------------------------------------------
+
+	LessonNameLabel := widget.NewLabel("Lesson Name")
+	LessonNameRadio := widget.NewRadioGroup([]string{"Long", "Short"}, func(value string) {
+		if value == "Long" {
+			api.LessonName = true
+		} else if value == "Short" {
+			api.LessonName = false
+		}
+		api.WriteUserConf()
+		UpdateTime(ParaNameLabel, TimerLabel, a)
+	})
+
+	LessonTypeLabel := widget.NewLabel("Lesson Type")
+	LessonTypeRadio := widget.NewRadioGroup([]string{"Show", "Hide"}, func(value string) {
+		if value == "Show" {
+			api.LessonType = true
+		} else if value == "Hide" {
+			api.LessonType = false
+		}
+		api.WriteUserConf()
+		UpdateTime(ParaNameLabel, TimerLabel, a)
+	})
+
+	//ColorPickerButton := widget.NewButton("Color", func() {
+	//	s := settings.NewSettings()
+	//	w := a.NewWindow("DUTclock Settings")
+	//	w.SetIcon(ic)
+	//
+	//	appearance := s.LoadAppearanceScreen(w)
+	//	tabs := container.NewAppTabs(
+	//		&container.TabItem{Text: "Appearance", Icon: s.AppearanceIcon(), Content: appearance})
+	//	tabs.SetTabLocation(container.TabLocationLeading)
+	//	w.SetContent(tabs)
+	//
+	//	w.Resize(fyne.NewSize(480, 480))
+	//	w.Show()
+	//})
+
+	s := settings.NewSettings()
+	appearance := s.LoadAppearanceScreen(w)
+
+	if api.LessonName == true {
+		LessonNameRadio.Selected = "Long"
+	} else if api.LessonName == false {
+		LessonNameRadio.Selected = "Short"
+	}
+
+	if api.LessonType == true {
+		LessonTypeRadio.Selected = "Show"
+	} else if api.LessonType == false {
+		LessonTypeRadio.Selected = "Hide"
+	}
+
+	// Add content
+	//---------------------------------------------------------------------
+
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Time", container.NewVBox(
+			//container.NewVBox(container.NewCenter(
+			//	AppLabel,
+			//)),
+			container.NewVBox(
+				FacultyLabel,
+				FacultySelector,
+				CourseLabel,
+				CourseSelector,
+				GroupLabel,
+				GroupSelector,
+			),
+			container.NewVBox(container.NewCenter(
+				ParaNameLabel,
+			)),
+			container.NewVBox(container.NewCenter(
+				TimerLabel,
+			)),
+			container.NewVBox(container.NewCenter(
+				LastUpdateLabel,
+			)),
+			container.NewVBox(container.NewCenter(
+				UpdateButton,
+			)),
+			container.NewVBox(container.NewCenter(
+				OnlineLabel,
+			)),
 		)),
-		container.NewVBox(
-			FacultyLabel,
-			FacultySelector,
-			CourseLabel,
-			CourseSelector,
-			GroupLabel,
-			GroupSelector,
+		container.NewTabItem("Settings", container.NewVBox(container.NewCenter(container.NewHBox(
+
+			container.NewVBox(
+				LessonNameLabel,
+				LessonNameRadio,
+			),
+			container.NewVBox(
+				LessonTypeLabel,
+				LessonTypeRadio,
+			),
+		)),
+		//ColorPickerButton,
 		),
-		container.NewVBox(container.NewCenter(
-			ParaNameLabel,
-		)),
-		container.NewVBox(container.NewCenter(
-			TimerLabel,
-		)),
-		container.NewVBox(container.NewCenter(
-			LastUpdateLabel,
-		)),
-		container.NewVBox(container.NewCenter(
-			UpdateButton,
-		)),
-		container.NewVBox(container.NewCenter(
-			OnlineLabel,
-		)),
-	))
+		),
+		&container.TabItem{Text: "Appearance", Content: appearance},
+	)
+
+	// Refresh theme
+	tabs.OnSelected = func(t *container.TabItem) {
+		t.Content.Refresh()
+	}
+
+	w.SetContent(tabs)
 
 	// show window
 	w.ShowAndRun()

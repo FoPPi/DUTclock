@@ -21,10 +21,11 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 
 	var (
 		dateNow       = time.Now()
-		result        []WeekJSON
+		result        WeekJSON
 		count         = 0
 		paruNaSegodna = 0
 		dateNowParsed time.Time
+		paraType      string = ""
 	)
 
 	if !isWeekend(dateNow) {
@@ -51,11 +52,11 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 		for i := 1; i <= 2; i++ {
 
 			// "1", "1", "1576", "CURRENT"
-			for _, rec := range result {
+			for _, rec := range result.Data {
 
-				StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.Day)
+				StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.LessonDate)
 
-				FinishTime, err := time.Parse("15:04 02.01.2006", rec.FinishAt+" "+rec.Day)
+				FinishTime, err := time.Parse("15:04 02.01.2006", rec.EndAt+" "+rec.LessonDate)
 
 				if err != nil {
 					fmt.Println(err)
@@ -68,8 +69,18 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 
 					paruNaSegodna++
 
+					if api.LessonName {
+						paraName = rec.LessonLongName
+					} else {
+						paraName = rec.LessonShortName
+					}
+
+					if api.LessonType {
+						paraType = rec.LessonType
+					}
+
 					if StartTime.Equal(dateNowParsed) {
-						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(rec.Name)))
+						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+paraType)))
 					} else if FinishTime.Equal(dateNowParsed) {
 						app.SendNotification(fyne.NewNotification("Пара закинчилася", "Ливай нахуй"))
 					}
@@ -77,11 +88,11 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 					if dateNowParsed.Before(StartTime) {
 						diff = StartTime.Sub(dateNowParsed)
 
-						return true, "До початку: " + PrettyPrint(rec.Name), diff
+						return true, "До початку: " + PrettyPrint(paraName+paraType), diff
 					} else if dateNowParsed.Before(FinishTime) {
 						diff = FinishTime.Sub(dateNowParsed)
 
-						return true, "До кінця: " + PrettyPrint(rec.Name), diff
+						return true, "До кінця: " + PrettyPrint(paraName+paraType), diff
 					} else {
 						count++
 					}
@@ -108,14 +119,14 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 }
 
 // ReadOfflineJSON читает json файл
-func ReadOfflineJSON(jsonName string) []WeekJSON {
+func ReadOfflineJSON(jsonName string) WeekJSON {
 	jsonFile, err := os.Open(jsonName)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	var Week []WeekJSON
+	var Week WeekJSON
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
@@ -168,10 +179,10 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 }
 
 // TakeWeek читает WeekJSON из url
-func TakeWeek(Faculty, Course, Group int, Week string) ([]WeekJSON, error) {
+func TakeWeek(Faculty, Course, Group int, Week string) (*WeekJSON, error) {
 
 	// 1/1/1576/NEXT
-	url := "https://dutcalendar-tracker.lwjerri.ml/v1/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+	url := "https://dut-api.lwjerri.ml/v3/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
 
 	// Get request
 	resp, err := http.Get(url)
@@ -187,7 +198,7 @@ func TakeWeek(Faculty, Course, Group int, Week string) ([]WeekJSON, error) {
 	}(resp.Body)
 	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
 
-	var result []WeekJSON
+	var result *WeekJSON
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
 		fmt.Println("Can not unmarshal JSON")
 		return nil, err
@@ -249,14 +260,24 @@ func PrettyPrint(text any) string {
 
 // WeekJSON структура json-а
 type WeekJSON struct {
-	AddedAt     *string `json:"addedAt"`
-	Cabinet     *string `json:"cabinet"`
-	FinishAt    string  `json:"finishAt"`
-	Lector      *string `json:"lector"`
-	StartAt     string  `json:"startAt"`
-	Name        *string `json:"name"`
-	ShortName   *string `json:"shortName"`
-	DayName     string  `json:"dayName"`
-	NumberByDay string  `json:"numberByDay"`
-	Day         string  `json:"day"`
+	IsCachedResponse bool   `json:"isCachedResponse"`
+	IsDataFromDB     bool   `json:"isDataFromDB"`
+	DataHash         string `json:"dataHash"`
+	Data             []struct {
+		LessonId        int    `json:"lessonId"`
+		LessonShortName string `json:"lessonShortName"`
+		LessonLongName  string `json:"lessonLongName"`
+		LessonType      string `json:"lessonType"`
+		UpdatedAt       string `json:"updatedAt"`
+		AddedAt         string `json:"addedAt"`
+		Cabinet         string `json:"cabinet"`
+		StartAt         string `json:"startAt"`
+		EndAt           string `json:"endAt"`
+		LectorShortName string `json:"lectorShortName"`
+		LectorFullName  string `json:"lectorFullName"`
+		GroupName       string `json:"groupName"`
+		LessonDate      string `json:"lessonDate"`
+		DayNameShort    string `json:"dayNameShort"`
+		DayNameLong     string `json:"dayNameLong"`
+	} `json:"data"`
 }

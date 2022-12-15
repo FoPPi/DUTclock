@@ -12,7 +12,7 @@ func TakeFacultyID(value string) {
 	faculty, _ := TakeFaculty()
 
 	FacultyName = value
-	for _, rec := range faculty {
+	for _, rec := range faculty.Data {
 		if value == rec.Name {
 			FacultyID = rec.Id
 		}
@@ -23,9 +23,9 @@ func TakeFacultyID(value string) {
 func FacultyJSONtoString() []string {
 	faculty, _ := TakeFaculty()
 
-	sArr := make([]string, len(faculty))
+	sArr := make([]string, len(faculty.Data))
 	counter := 0
-	for _, rec := range faculty {
+	for _, rec := range faculty.Data {
 		sArr[counter] = rec.Name
 		counter++
 	}
@@ -35,8 +35,8 @@ func FacultyJSONtoString() []string {
 }
 
 // TakeFaculty читает FacultyJSON из url
-func TakeFaculty() ([]FacultyJSON, error) {
-	url := "https://dutcalendar-tracker.lwjerri.ml/v1/faculty"
+func TakeFaculty() (*FacultyJSON, error) {
+	url := "https://dut-api.lwjerri.ml/v3/faculty"
 
 	// Get request
 	resp, err := http.Get(url)
@@ -52,7 +52,7 @@ func TakeFaculty() ([]FacultyJSON, error) {
 	}(resp.Body)
 	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
 
-	var result []FacultyJSON
+	var result *FacultyJSON
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
 		fmt.Println("Can not unmarshal JSON")
 		return nil, err
@@ -63,6 +63,11 @@ func TakeFaculty() ([]FacultyJSON, error) {
 
 // FacultyJSON структура json-а
 type FacultyJSON struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	IsCachedResponse bool   `json:"isCachedResponse"`
+	IsDataFromDB     bool   `json:"isDataFromDB"`
+	DataHash         string `json:"dataHash"`
+	Data             []struct {
+		Name string `json:"name"`
+		Id   int    `json:"id"`
+	} `json:"data"`
 }
