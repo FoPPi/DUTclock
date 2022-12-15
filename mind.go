@@ -76,11 +76,11 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 					}
 
 					if api.LessonType {
-						paraType = rec.LessonType
+						paraType = "[" + rec.LessonType + "]"
 					}
 
 					if StartTime.Equal(dateNowParsed) {
-						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+paraType)))
+						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+" "+paraType)))
 					} else if FinishTime.Equal(dateNowParsed) {
 						app.SendNotification(fyne.NewNotification("Пара закинчилася", "Ливай нахуй"))
 					}
@@ -88,11 +88,11 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 					if dateNowParsed.Before(StartTime) {
 						diff = StartTime.Sub(dateNowParsed)
 
-						return true, "До початку: " + PrettyPrint(paraName+paraType), diff
+						return true, "До початку: " + PrettyPrint(paraName+" "+paraType), diff
 					} else if dateNowParsed.Before(FinishTime) {
 						diff = FinishTime.Sub(dateNowParsed)
 
-						return true, "До кінця: " + PrettyPrint(paraName+paraType), diff
+						return true, "До кінця: " + PrettyPrint(paraName+" "+paraType), diff
 					} else {
 						count++
 					}
