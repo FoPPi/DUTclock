@@ -15,5 +15,5 @@ var (
 	LessonName bool = true // true - long | false - short
 	LessonType bool = true // true - show | false - hide
 
-	Version string = "v2.0.0"
+	Version string = "v2.0"
 )
