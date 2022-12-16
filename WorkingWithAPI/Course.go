@@ -13,7 +13,7 @@ func TakeCourseID(value string) {
 	CourseJson, _ := TakeCourse(FacultyID)
 
 	CourseName = value
-	for _, rec := range CourseJson {
+	for _, rec := range CourseJson.Data {
 		if value == rec.Name {
 			CourseID = rec.Id
 		}
@@ -26,9 +26,9 @@ func CourseJSONtoString(value string) []string {
 
 	CourseJson, _ := TakeCourse(FacultyID)
 
-	sArr := make([]string, len(CourseJson))
+	sArr := make([]string, len(CourseJson.Data))
 	counter := 0
-	for _, rec := range CourseJson {
+	for _, rec := range CourseJson.Data {
 		sArr[counter] = rec.Name
 		counter++
 	}
@@ -38,8 +38,8 @@ func CourseJSONtoString(value string) []string {
 }
 
 // TakeCourse читает CourseJSON из url
-func TakeCourse(FacultyID int) ([]CourseJSON, error) {
-	url := "https://dutcalendar-tracker.lwjerri.ml/v1/course/" + strconv.Itoa(FacultyID)
+func TakeCourse(FacultyID int) (*CourseJSON, error) {
+	url := "https://dut-api.lwjerri.ml/v3/course/" + strconv.Itoa(FacultyID)
 
 	// Get request
 	resp, err := http.Get(url)
@@ -55,7 +55,7 @@ func TakeCourse(FacultyID int) ([]CourseJSON, error) {
 	}(resp.Body)
 	body, err := ioutil.ReadAll(resp.Body) // response body is []byte
 
-	var result []CourseJSON
+	var result *CourseJSON
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
 		fmt.Println("Can not unmarshal JSON")
 		return nil, err
@@ -66,6 +66,11 @@ func TakeCourse(FacultyID int) ([]CourseJSON, error) {
 
 // CourseJSON структура json-а
 type CourseJSON struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	IsCachedResponse bool   `json:"isCachedResponse"`
+	IsDataFromDB     bool   `json:"isDataFromDB"`
+	DataHash         string `json:"dataHash"`
+	Data             []struct {
+		Name string `json:"name"`
+		Id   int    `json:"id"`
+	} `json:"data"`
 }
