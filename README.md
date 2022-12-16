@@ -9,4 +9,3 @@ Shows the time until the beginning / end of the lesson
 - Appearance
 - Auto update
 - Available on Linux
---------------------------------------
