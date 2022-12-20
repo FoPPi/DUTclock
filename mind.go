@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/widget"
+	"image/color"
 	"io"
 	"io/ioutil"
 	"log"
@@ -280,4 +283,84 @@ type WeekJSON struct {
 		DayNameShort    string `json:"dayNameShort"`
 		DayNameLong     string `json:"dayNameLong"`
 	} `json:"data"`
+}
+
+func TakeRozkald() (Cards [5]widget.Card) {
+	var (
+		nowDate       = time.Now()
+		nowParsedDate = time.Time{}
+		result        WeekJSON
+		count         = 0
+	)
+
+	if !isWeekend(nowDate) {
+
+		y, mon, d := nowDate.Date()
+		dateString := strconv.Itoa(d) + "." + strconv.Itoa(int(mon)) + "." + strconv.Itoa(y)
+		var err error
+		nowParsedDate, err = time.Parse("2.1.2006", dateString)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		isSecondJSON := false
+
+		result = ReadOfflineJSON("files/CURRENT_WeekJSON.json")
+		for i := 1; i <= 2; i++ {
+
+			// "1", "1", "1576", "CURRENT"
+			for _, rec := range result.Data {
+
+				paraDate, err := time.Parse("02.01.2006", rec.LessonDate)
+
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+
+				if nowParsedDate.Equal(paraDate) {
+
+					switch rec.StartAt {
+					case "8:00":
+						count = 0
+						break
+					case "09:45":
+						count = 1
+						break
+					case "11:45":
+						count = 2
+						break
+					case "13:30":
+						count = 3
+						break
+					case "15:15":
+						count = 4
+						break
+
+					}
+
+					Cards[count] = widget.Card{
+						Subtitle: "(" + strconv.Itoa(count+1) + ") " + rec.LessonLongName + " [" + rec.LessonType + "]",
+						Content:  canvas.NewText(" "+rec.StartAt+" - "+rec.EndAt, color.White),
+					}
+
+					if !isSecondJSON {
+						isSecondJSON = true
+					}
+				}
+			}
+			if isSecondJSON {
+				return
+			} else {
+				isSecondJSON = true
+				result = ReadOfflineJSON("files/NEXT_WeekJSON.json")
+				count = 0
+			}
+		}
+	} else {
+		//Вывест что пар нету
+		//fmt.Println("Сьогодні немає пар :)")
+		return
+	}
+	return
 }
