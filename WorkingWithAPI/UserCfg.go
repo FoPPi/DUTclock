@@ -44,6 +44,7 @@ func ReadUserConf() {
 
 	LessonName = UserCFG.Settings.LessonName
 	LessonType = UserCFG.Settings.LessonType
+	SendNotification = UserCFG.Settings.SendNotification
 
 	LastUpdate = UserCFG.LastUpdate
 }
@@ -63,8 +64,9 @@ func WriteUserConf() {
 			GroupID:   GroupID,
 		},
 		Settings: Settings{
-			LessonName: LessonName,
-			LessonType: LessonType,
+			LessonName:       LessonName,
+			LessonType:       LessonType,
+			SendNotification: SendNotification,
 		},
 		LastUpdate: LastUpdate,
 	}
@@ -109,6 +111,7 @@ type Group struct {
 }
 
 type Settings struct {
-	LessonName bool `json:"lesson_name"`
-	LessonType bool `json:"lesson_type"`
+	LessonName       bool `json:"lesson_name"`
+	LessonType       bool `json:"lesson_type"`
+	SendNotification bool `json:"send_notification"`
 }

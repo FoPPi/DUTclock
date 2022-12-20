@@ -82,10 +82,12 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 						paraType = "[" + rec.LessonType + "]"
 					}
 
-					if StartTime.Equal(dateNowParsed) {
-						app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+" "+paraType)))
-					} else if FinishTime.Equal(dateNowParsed) {
-						app.SendNotification(fyne.NewNotification("Пара закинчилася", "Ливай нахуй"))
+					if !api.SendNotification {
+						if StartTime.Equal(dateNowParsed) {
+							app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+" "+paraType)))
+						} else if FinishTime.Equal(dateNowParsed) {
+							app.SendNotification(fyne.NewNotification("Пара закинчилася", "Ливай нахуй"))
+						}
 					}
 
 					if dateNowParsed.Before(StartTime) {
@@ -307,8 +309,6 @@ func TakeRozkald() (Cards [5]widget.Card) {
 
 		result = ReadOfflineJSON("files/CURRENT_WeekJSON.json")
 		for i := 1; i <= 2; i++ {
-
-			// "1", "1", "1576", "CURRENT"
 			for _, rec := range result.Data {
 
 				paraDate, err := time.Parse("02.01.2006", rec.LessonDate)
@@ -341,7 +341,7 @@ func TakeRozkald() (Cards [5]widget.Card) {
 
 					Cards[count] = widget.Card{
 						Subtitle: "(" + strconv.Itoa(count+1) + ") " + rec.LessonLongName + " [" + rec.LessonType + "]",
-						Content:  canvas.NewText(" "+rec.StartAt+" - "+rec.EndAt, color.White),
+						Content:  canvas.NewText(" "+rec.StartAt+" - "+rec.EndAt+" \t"+rec.Cabinet, color.White),
 					}
 
 					if !isSecondJSON {

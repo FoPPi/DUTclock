@@ -214,20 +214,15 @@ func main() {
 		UpdateTime(ParaNameLabel, TimerLabel, a)
 	})
 
-	//ColorPickerButton := widget.NewButton("Color", func() {
-	//	s := settings.NewSettings()
-	//	w := a.NewWindow("DUTclock Settings")
-	//	w.SetIcon(ic)
-	//
-	//	appearance := s.LoadAppearanceScreen(w)
-	//	tabs := container.NewAppTabs(
-	//		&container.TabItem{Text: "Appearance", Icon: s.AppearanceIcon(), Content: appearance})
-	//	tabs.SetTabLocation(container.TabLocationLeading)
-	//	w.SetContent(tabs)
-	//
-	//	w.Resize(fyne.NewSize(480, 480))
-	//	w.Show()
-	//})
+	SendNotificationLabel := widget.NewLabel("Send Notif")
+	SendNotificationRadio := widget.NewRadioGroup([]string{"Yes", "No"}, func(value string) {
+		if value == "Yes" {
+			api.SendNotification = true
+		} else if value == "No" {
+			api.SendNotification = false
+		}
+		api.WriteUserConf()
+	})
 
 	s := settings.NewSettings()
 	appearance := s.LoadAppearanceScreen(w)
@@ -242,6 +237,12 @@ func main() {
 		LessonTypeRadio.Selected = "Show"
 	} else if api.LessonType == false {
 		LessonTypeRadio.Selected = "Hide"
+	}
+
+	if api.SendNotification == true {
+		SendNotificationRadio.Selected = "Yes"
+	} else if api.SendNotification == false {
+		SendNotificationRadio.Selected = "No"
 	}
 
 	// Add content
@@ -287,8 +288,11 @@ func main() {
 				LessonTypeLabel,
 				LessonTypeRadio,
 			),
+			container.NewVBox(
+				SendNotificationLabel,
+				SendNotificationRadio,
+			),
 		)),
-			//ColorPickerButton,
 		),
 		),
 		&container.TabItem{Text: "Appearance", Content: appearance},
