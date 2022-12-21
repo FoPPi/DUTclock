@@ -18,6 +18,7 @@ var (
 	FacultySelector      = widget.NewSelect([]string{}, func(value string) {})
 	CourseSelector       = widget.NewSelect([]string{}, func(value string) {})
 	GroupSelector        = widget.NewSelect([]string{}, func(value string) {})
+	DateSelector         = widget.NewSelect([]string{}, func(value string) {})
 	arrCards             = [5]widget.Card{}
 )
 
@@ -107,7 +108,9 @@ func main() {
 	LastUpdateLabel := widget.NewLabel("")
 	UpdateButton := widget.NewButton("Update", func() {
 		CheckConn(OnlineLabel, LastUpdateLabel, w, true)
-		FacultySelector.Options = api.FacultyJSONtoString()
+		if InternetExist {
+			FacultySelector.Options = api.FacultyJSONtoString()
+		}
 	})
 	UpdateButton.Hidden = true
 
@@ -131,7 +134,7 @@ func main() {
 	go func() {
 		for range time.Tick(time.Hour / 2) {
 			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
-			arrCards = TakeRozkald()
+			arrCards = TakeRozkald("now")
 		}
 	}()
 
@@ -146,7 +149,9 @@ func main() {
 			UpdateTime(ParaNameLabel, TimerLabel, a)
 			api.WriteUserConf()
 
-			arrCards = TakeRozkald()
+			arrCards = TakeRozkald("now")
+			DateSelector.Options = TakeDaysFromJSON()
+			DateSelector.Selected = time.Now().Format("02.01.2006")
 		}
 	})
 
@@ -176,7 +181,9 @@ func main() {
 		GroupSelector.Selected = api.GroupName
 		CourseSelector.Selected = api.CourseName
 		FacultySelector.Selected = api.FacultyName
-		arrCards = TakeRozkald()
+		arrCards = TakeRozkald("now")
+		DateSelector.Options = TakeDaysFromJSON()
+		DateSelector.Selected = time.Now().Format("02.01.2006")
 		if InternetExist {
 			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
 			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
@@ -187,6 +194,7 @@ func main() {
 	//---------------------------------------------------------------------
 
 	//add grid
+
 	grid := container.New(layout.NewGridLayout(1), &arrCards[0], &arrCards[1], &arrCards[2], &arrCards[3], &arrCards[4])
 
 	//Settings tab
@@ -277,7 +285,7 @@ func main() {
 				OnlineLabel,
 			)),
 		)),
-		container.NewTabItem("Calendar", grid),
+		container.NewTabItem("Calendar", container.NewVBox(DateSelector, grid)),
 		container.NewTabItem("Settings", container.NewVBox(container.NewCenter(container.NewHBox(
 
 			container.NewVBox(
@@ -301,6 +309,10 @@ func main() {
 	// Refresh theme
 	tabs.OnSelected = func(t *container.TabItem) {
 		t.Content.Refresh()
+	}
+	DateSelector.OnChanged = func(value string) {
+		arrCards = TakeRozkald(value)
+		tabs.Items[1].Content.Refresh()
 	}
 
 	w.SetContent(tabs)

@@ -16,5 +16,5 @@ var (
 	LessonType       bool = true // true - show | false - hide
 	SendNotification bool = true // true - send | false - hide
 
-	Version string = "v2.5"
+	Version string = "v2.8"
 )

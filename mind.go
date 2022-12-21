@@ -32,21 +32,10 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 	)
 
 	if !isWeekend(dateNow) {
-		h, min, _ := dateNow.Clock()
-		y, mon, d := dateNow.Date()
-		dateString := strconv.Itoa(h) + ":" + strconv.Itoa(min) + " " + strconv.Itoa(d) + "." + strconv.Itoa(int(mon)) + "." + strconv.Itoa(y)
-		if h < 10 {
-			var err error
-			dateNowParsed, err = time.Parse("3:4 2.1.2006", dateString)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			var err error
-			dateNowParsed, err = time.Parse("15:4 2.1.2006", dateString)
-			if err != nil {
-				fmt.Println(err)
-			}
+		var err error
+		dateNowParsed, err = time.Parse("15:04 02.01.2006", dateNow.Format("15:04 02.01.2006"))
+		if err != nil {
+			fmt.Println(err)
 		}
 
 		isSecondJSON := false
@@ -287,7 +276,7 @@ type WeekJSON struct {
 	} `json:"data"`
 }
 
-func TakeRozkald() (Cards [5]widget.Card) {
+func TakeRozkald(selectedDate string) (Cards [5]widget.Card) {
 	var (
 		nowDate       = time.Now()
 		nowParsedDate = time.Time{}
@@ -295,15 +284,21 @@ func TakeRozkald() (Cards [5]widget.Card) {
 		count         = 0
 	)
 
-	if !isWeekend(nowDate) {
-
-		y, mon, d := nowDate.Date()
-		dateString := strconv.Itoa(d) + "." + strconv.Itoa(int(mon)) + "." + strconv.Itoa(y)
+	if selectedDate == "now" {
 		var err error
-		nowParsedDate, err = time.Parse("2.1.2006", dateString)
+		nowParsedDate, err = time.Parse("02.01.2006", nowDate.Format("02.01.2006"))
 		if err != nil {
 			fmt.Println(err)
 		}
+	} else {
+		var err error
+		nowParsedDate, err = time.Parse("02.01.2006", selectedDate)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	if !isWeekend(nowDate) {
 
 		isSecondJSON := false
 
@@ -363,4 +358,30 @@ func TakeRozkald() (Cards [5]widget.Card) {
 		return
 	}
 	return
+}
+
+func TakeDaysFromJSON() []string {
+	isSecondJSON := false
+	strArr := ""
+	count := 1
+	result := ReadOfflineJSON("files/CURRENT_WeekJSON.json")
+	for i := 1; i <= 2; i++ {
+		for _, rec := range result.Data {
+			if len(strArr) == 0 {
+				strArr = rec.LessonDate + " "
+			}
+			if !strings.Contains(strArr, rec.LessonDate) {
+				strArr += rec.LessonDate + " "
+				count++
+			}
+
+		}
+		if isSecondJSON {
+			return strings.Split(strings.TrimSuffix(strArr, " "), " ")
+		} else {
+			isSecondJSON = true
+			result = ReadOfflineJSON("files/NEXT_WeekJSON.json")
+		}
+	}
+	return strings.Split(strArr, " ")
 }
