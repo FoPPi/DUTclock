@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/pkg/browser"
 	"time"
@@ -17,6 +18,7 @@ var (
 	FacultySelector      = widget.NewSelect([]string{}, func(value string) {})
 	CourseSelector       = widget.NewSelect([]string{}, func(value string) {})
 	GroupSelector        = widget.NewSelect([]string{}, func(value string) {})
+	arrCards             = [5]widget.Card{}
 )
 
 // UpdateTime Show time to pare
@@ -106,7 +108,6 @@ func main() {
 	UpdateButton := widget.NewButton("Update", func() {
 		CheckConn(OnlineLabel, LastUpdateLabel, w, true)
 		FacultySelector.Options = api.FacultyJSONtoString()
-
 	})
 	UpdateButton.Hidden = true
 
@@ -130,6 +131,7 @@ func main() {
 	go func() {
 		for range time.Tick(time.Hour / 2) {
 			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+			arrCards = TakeRozkald()
 		}
 	}()
 
@@ -143,6 +145,8 @@ func main() {
 			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
 			UpdateTime(ParaNameLabel, TimerLabel, a)
 			api.WriteUserConf()
+
+			arrCards = TakeRozkald()
 		}
 	})
 
@@ -172,11 +176,18 @@ func main() {
 		GroupSelector.Selected = api.GroupName
 		CourseSelector.Selected = api.CourseName
 		FacultySelector.Selected = api.FacultyName
+		arrCards = TakeRozkald()
 		if InternetExist {
 			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
 			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
 		}
 	}
+
+	//Calendar tab
+	//---------------------------------------------------------------------
+
+	//add grid
+	grid := container.New(layout.NewGridLayout(1), &arrCards[0], &arrCards[1], &arrCards[2], &arrCards[3], &arrCards[4])
 
 	//Settings tab
 	//---------------------------------------------------------------------
@@ -203,20 +214,15 @@ func main() {
 		UpdateTime(ParaNameLabel, TimerLabel, a)
 	})
 
-	//ColorPickerButton := widget.NewButton("Color", func() {
-	//	s := settings.NewSettings()
-	//	w := a.NewWindow("DUTclock Settings")
-	//	w.SetIcon(ic)
-	//
-	//	appearance := s.LoadAppearanceScreen(w)
-	//	tabs := container.NewAppTabs(
-	//		&container.TabItem{Text: "Appearance", Icon: s.AppearanceIcon(), Content: appearance})
-	//	tabs.SetTabLocation(container.TabLocationLeading)
-	//	w.SetContent(tabs)
-	//
-	//	w.Resize(fyne.NewSize(480, 480))
-	//	w.Show()
-	//})
+	SendNotificationLabel := widget.NewLabel("Send Notif")
+	SendNotificationRadio := widget.NewRadioGroup([]string{"Yes", "No"}, func(value string) {
+		if value == "Yes" {
+			api.SendNotification = true
+		} else if value == "No" {
+			api.SendNotification = false
+		}
+		api.WriteUserConf()
+	})
 
 	s := settings.NewSettings()
 	appearance := s.LoadAppearanceScreen(w)
@@ -231,6 +237,12 @@ func main() {
 		LessonTypeRadio.Selected = "Show"
 	} else if api.LessonType == false {
 		LessonTypeRadio.Selected = "Hide"
+	}
+
+	if api.SendNotification == true {
+		SendNotificationRadio.Selected = "Yes"
+	} else if api.SendNotification == false {
+		SendNotificationRadio.Selected = "No"
 	}
 
 	// Add content
@@ -265,6 +277,7 @@ func main() {
 				OnlineLabel,
 			)),
 		)),
+		container.NewTabItem("Calendar", grid),
 		container.NewTabItem("Settings", container.NewVBox(container.NewCenter(container.NewHBox(
 
 			container.NewVBox(
@@ -275,8 +288,11 @@ func main() {
 				LessonTypeLabel,
 				LessonTypeRadio,
 			),
+			container.NewVBox(
+				SendNotificationLabel,
+				SendNotificationRadio,
+			),
 		)),
-		//ColorPickerButton,
 		),
 		),
 		&container.TabItem{Text: "Appearance", Content: appearance},
