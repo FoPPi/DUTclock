@@ -16,5 +16,7 @@ var (
 	LessonType       bool = true // true - show | false - hide
 	SendNotification bool = true // true - send | false - hide
 
+	LastTabID int = 2
+
 	Version string = "v2.8"
 )

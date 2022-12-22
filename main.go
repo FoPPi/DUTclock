@@ -307,10 +307,28 @@ func main() {
 		&container.TabItem{Text: "Appearance", Content: appearance},
 	)
 
-	tabs.Select(tabs.Items[2])
+	tabs.Select(tabs.Items[api.LastTabID])
+
 	// Refresh theme
 	tabs.OnSelected = func(t *container.TabItem) {
 		t.Content.Refresh()
+
+		if api.GroupID != 0 {
+			switch t.Text {
+			case "Time":
+				api.LastTabID = 0
+				break
+			case "Calendar":
+				api.LastTabID = 1
+			case "Settings":
+				api.LastTabID = 2
+			case "Appearance":
+				api.LastTabID = 3
+			}
+
+			api.WriteUserConf()
+		}
+
 	}
 	DateSelector.OnChanged = func(value string) {
 		arrCards = TakeRozkald(value)
