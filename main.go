@@ -257,18 +257,11 @@ func main() {
 	//---------------------------------------------------------------------
 
 	tabs := container.NewAppTabs(
-		container.NewTabItem("Time", container.NewVBox(
+		container.NewTabItem("Time", container.NewCenter(container.NewVBox(
 			//container.NewVBox(container.NewCenter(
 			//	AppLabel,
 			//)),
-			container.NewVBox(
-				FacultyLabel,
-				FacultySelector,
-				CourseLabel,
-				CourseSelector,
-				GroupLabel,
-				GroupSelector,
-			),
+
 			container.NewVBox(container.NewCenter(
 				ParaNameLabel,
 			)),
@@ -284,28 +277,37 @@ func main() {
 			container.NewVBox(container.NewCenter(
 				OnlineLabel,
 			)),
-		)),
+		))),
 		container.NewTabItem("Calendar", container.NewVBox(DateSelector, grid)),
-		container.NewTabItem("Settings", container.NewVBox(container.NewCenter(container.NewHBox(
-
+		container.NewTabItem("Settings", container.NewVBox(
 			container.NewVBox(
-				LessonNameLabel,
-				LessonNameRadio,
+				FacultyLabel,
+				FacultySelector,
+				CourseLabel,
+				CourseSelector,
+				GroupLabel,
+				GroupSelector,
 			),
-			container.NewVBox(
-				LessonTypeLabel,
-				LessonTypeRadio,
-			),
-			container.NewVBox(
-				SendNotificationLabel,
-				SendNotificationRadio,
-			),
-		)),
-		),
-		),
+			container.NewCenter(
+				container.NewHBox(
+					container.NewVBox(
+						LessonNameLabel,
+						LessonNameRadio,
+					),
+					container.NewVBox(
+						LessonTypeLabel,
+						LessonTypeRadio,
+					),
+					container.NewVBox(
+						SendNotificationLabel,
+						SendNotificationRadio,
+					),
+				),
+			))),
 		&container.TabItem{Text: "Appearance", Content: appearance},
 	)
 
+	tabs.Select(tabs.Items[2])
 	// Refresh theme
 	tabs.OnSelected = func(t *container.TabItem) {
 		t.Content.Refresh()

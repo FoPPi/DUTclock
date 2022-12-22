@@ -10,18 +10,18 @@ import (
 )
 
 func ReadUserConf() {
-	jsonFile, err := os.Open("files/UserCfg.json")
+	jsonFile, err := os.Open("files/SettingsJSON.json")
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	var UserCFG UserJSON
+	var SettingsJSON Settings
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	err = json.Unmarshal(byteValue, &UserCFG)
+	err = json.Unmarshal(byteValue, &SettingsJSON)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -33,42 +33,42 @@ func ReadUserConf() {
 		return
 	}
 
-	FacultyName = UserCFG.Faculty.FacultyName
-	FacultyID = UserCFG.Faculty.FacultyID
+	FacultyName = SettingsJSON.DutInfo.Faculty.FacultyName
+	FacultyID = SettingsJSON.DutInfo.Faculty.FacultyID
 
-	CourseName = UserCFG.Course.CourseName
-	CourseID = UserCFG.Course.CourseID
+	CourseName = SettingsJSON.DutInfo.Course.CourseName
+	CourseID = SettingsJSON.DutInfo.Course.CourseID
 
-	GroupName = UserCFG.Group.GroupName
-	GroupID = UserCFG.Group.GroupID
+	GroupName = SettingsJSON.DutInfo.Group.GroupName
+	GroupID = SettingsJSON.DutInfo.Group.GroupID
 
-	LessonName = UserCFG.Settings.LessonName
-	LessonType = UserCFG.Settings.LessonType
-	SendNotification = UserCFG.Settings.SendNotification
+	LessonName = SettingsJSON.LessonName
+	LessonType = SettingsJSON.LessonType
+	SendNotification = SettingsJSON.SendNotification
 
-	LastUpdate = UserCFG.LastUpdate
+	LastUpdate = SettingsJSON.DutInfo.LastUpdate
 }
 
 func WriteUserConf() {
-	data := &UserJSON{
-		Faculty: Faculty{
-			FacultyName: FacultyName,
-			FacultyID:   FacultyID,
+	data := &Settings{
+		DutInfo: DutInfo{
+			Faculty: Faculty{
+				FacultyName: FacultyName,
+				FacultyID:   FacultyID,
+			},
+			Course: Course{
+				CourseName: CourseName,
+				CourseID:   CourseID,
+			},
+			Group: Group{
+				GroupName: GroupName,
+				GroupID:   GroupID,
+			},
+			LastUpdate: LastUpdate,
 		},
-		Course: Course{
-			CourseName: CourseName,
-			CourseID:   CourseID,
-		},
-		Group: Group{
-			GroupName: GroupName,
-			GroupID:   GroupID,
-		},
-		Settings: Settings{
-			LessonName:       LessonName,
-			LessonType:       LessonType,
-			SendNotification: SendNotification,
-		},
-		LastUpdate: LastUpdate,
+		LessonName:       LessonName,
+		LessonType:       LessonType,
+		SendNotification: SendNotification,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -84,15 +84,21 @@ func WriteUserConf() {
 		log.Fatal(erro)
 	}
 
-	_ = ioutil.WriteFile("files/UserCfg.json", jsonData, 0644)
+	_ = ioutil.WriteFile("files/SettingsJSON.json", jsonData, 0644)
 }
 
-type UserJSON struct {
-	Faculty    Faculty  `json:"faculty"`
-	Course     Course   `json:"course"`
-	Group      Group    `json:"group"`
-	Settings   Settings `json:"settings"`
-	LastUpdate string   `json:"last_update"`
+type Settings struct {
+	DutInfo          DutInfo `json:"dut_info"`
+	LessonName       bool    `json:"lesson_name"`
+	LessonType       bool    `json:"lesson_type"`
+	SendNotification bool    `json:"send_notification"`
+}
+
+type DutInfo struct {
+	Faculty    Faculty `json:"faculty"`
+	Course     Course  `json:"course"`
+	Group      Group   `json:"group"`
+	LastUpdate string  `json:"last_update"`
 }
 
 type Faculty struct {
@@ -108,10 +114,4 @@ type Course struct {
 type Group struct {
 	GroupName string `json:"group_name"`
 	GroupID   int    `json:"group_id"`
-}
-
-type Settings struct {
-	LessonName       bool `json:"lesson_name"`
-	LessonType       bool `json:"lesson_type"`
-	SendNotification bool `json:"send_notification"`
 }
