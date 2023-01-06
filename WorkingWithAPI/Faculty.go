@@ -36,7 +36,7 @@ func FacultyJSONtoString() []string {
 
 // TakeFaculty читает FacultyJSON из url
 func TakeFaculty() (*FacultyJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v3/faculty"
+	url := "https://dut-api.lwjerri.ml/v4/faculty"
 
 	// Get request
 	resp, err := http.Get(url)

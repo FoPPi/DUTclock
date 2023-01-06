@@ -176,7 +176,7 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 func TakeWeek(Faculty, Course, Group int, Week string) (*WeekJSON, error) {
 
 	// 1/1/1576/NEXT
-	url := "https://dut-api.lwjerri.ml/v3/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+	url := "https://dut-api.lwjerri.ml/v4/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
 
 	// Get request
 	resp, err := http.Get(url)
@@ -258,21 +258,20 @@ type WeekJSON struct {
 	IsDataFromDB     bool   `json:"isDataFromDB"`
 	DataHash         string `json:"dataHash"`
 	Data             []struct {
-		LessonId        int    `json:"lessonId"`
-		LessonShortName string `json:"lessonShortName"`
-		LessonLongName  string `json:"lessonLongName"`
-		LessonType      string `json:"lessonType"`
-		UpdatedAt       string `json:"updatedAt"`
 		AddedAt         string `json:"addedAt"`
 		Cabinet         string `json:"cabinet"`
-		StartAt         string `json:"startAt"`
-		EndAt           string `json:"endAt"`
-		LectorShortName string `json:"lectorShortName"`
-		LectorFullName  string `json:"lectorFullName"`
-		GroupName       string `json:"groupName"`
-		LessonDate      string `json:"lessonDate"`
-		DayNameShort    string `json:"dayNameShort"`
 		DayNameLong     string `json:"dayNameLong"`
+		DayNameShort    string `json:"dayNameShort"`
+		EndAt           string `json:"endAt"`
+		GroupName       string `json:"groupName"`
+		LectorFullName  string `json:"lectorFullName"`
+		LectorShortName string `json:"lectorShortName"`
+		LessonDate      string `json:"lessonDate"`
+		LessonLongName  string `json:"lessonLongName"`
+		LessonNumber    int    `json:"lessonNumber"`
+		LessonShortName string `json:"lessonShortName"`
+		LessonType      string `json:"lessonType"`
+		StartAt         string `json:"startAt"`
 	} `json:"data"`
 }
 
@@ -297,65 +296,57 @@ func TakeRozkald(selectedDate string) (Cards [5]widget.Card) {
 			fmt.Println(err)
 		}
 	}
+	isSecondJSON := false
 
-	if !isWeekend(nowDate) {
+	result = ReadOfflineJSON("files/CURRENT_WeekJSON.json")
+	for i := 1; i <= 2; i++ {
+		for _, rec := range result.Data {
 
-		isSecondJSON := false
+			paraDate, err := time.Parse("02.01.2006", rec.LessonDate)
 
-		result = ReadOfflineJSON("files/CURRENT_WeekJSON.json")
-		for i := 1; i <= 2; i++ {
-			for _, rec := range result.Data {
-
-				paraDate, err := time.Parse("02.01.2006", rec.LessonDate)
-
-				if err != nil {
-					fmt.Println(err)
-					break
-				}
-
-				if nowParsedDate.Equal(paraDate) {
-
-					switch rec.StartAt {
-					case "8:00":
-						count = 0
-						break
-					case "09:45":
-						count = 1
-						break
-					case "11:45":
-						count = 2
-						break
-					case "13:30":
-						count = 3
-						break
-					case "15:15":
-						count = 4
-						break
-
-					}
-
-					Cards[count] = widget.Card{
-						Subtitle: "(" + strconv.Itoa(count+1) + ") " + rec.LessonLongName + " [" + rec.LessonType + "]",
-						Content:  canvas.NewText(" "+rec.StartAt+" - "+rec.EndAt+" \t"+rec.Cabinet, color.White),
-					}
-
-					if !isSecondJSON {
-						isSecondJSON = true
-					}
-				}
+			if err != nil {
+				fmt.Println(err)
+				break
 			}
-			if isSecondJSON {
-				return
-			} else {
-				isSecondJSON = true
-				result = ReadOfflineJSON("files/NEXT_WeekJSON.json")
-				count = 0
+
+			if nowParsedDate.Equal(paraDate) {
+
+				switch rec.StartAt {
+				case "8:00":
+					count = 0
+					break
+				case "09:45":
+					count = 1
+					break
+				case "11:45":
+					count = 2
+					break
+				case "13:30":
+					count = 3
+					break
+				case "15:15":
+					count = 4
+					break
+
+				}
+
+				Cards[count] = widget.Card{
+					Subtitle: "(" + strconv.Itoa(count+1) + ") " + rec.LessonLongName + " [" + rec.LessonType + "]",
+					Content:  canvas.NewText(" "+rec.StartAt+" - "+rec.EndAt+" \t"+rec.Cabinet, color.White),
+				}
+
+				if !isSecondJSON {
+					isSecondJSON = true
+				}
 			}
 		}
-	} else {
-		//Вывест что пар нету
-		//fmt.Println("Сьогодні немає пар :)")
-		return
+		if isSecondJSON {
+			return
+		} else {
+			isSecondJSON = true
+			result = ReadOfflineJSON("files/NEXT_WeekJSON.json")
+			count = 0
+		}
 	}
 	return
 }

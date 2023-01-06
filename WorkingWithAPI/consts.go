@@ -18,5 +18,5 @@ var (
 
 	LastTabID int = 2
 
-	Version string = "v2.8"
+	Version string = "v2.9"
 )
