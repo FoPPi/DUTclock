@@ -4,9 +4,6 @@ import (
 	api "DUTclock/WorkingWithAPI"
 	"encoding/json"
 	"fmt"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/widget"
 	"image/color"
 	"io"
 	"io/ioutil"
@@ -17,6 +14,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/widget"
 )
 
 // TakeTime показывет сколько до начала/конца пары (надо оптимизировать)
@@ -176,7 +177,7 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 func TakeWeek(Faculty, Course, Group int, Week string) (*WeekJSON, error) {
 
 	// 1/1/1576/NEXT
-	url := "https://dut-api.lwjerri.ml/v4/calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+	url := "https://dut-api.lwjerri.ml/v4/student-calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
 
 	// Get request
 	resp, err := http.Get(url)

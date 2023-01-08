@@ -2,6 +2,8 @@ package main
 
 import (
 	api "DUTclock/WorkingWithAPI"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
@@ -10,7 +12,6 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/pkg/browser"
-	"time"
 )
 
 var (
