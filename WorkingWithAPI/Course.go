@@ -39,7 +39,7 @@ func CourseJSONtoString(value string) []string {
 
 // TakeCourse читает CourseJSON из url
 func TakeCourse(FacultyID int) (*CourseJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v4/course/" + strconv.Itoa(FacultyID)
+	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/course/" + strconv.Itoa(FacultyID)
 
 	// Get request
 	resp, err := http.Get(url)

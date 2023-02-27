@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 func TakeFacultyID(value string) {
@@ -36,7 +37,7 @@ func FacultyJSONtoString() []string {
 
 // TakeFaculty читает FacultyJSON из url
 func TakeFaculty() (*FacultyJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v4/faculty"
+	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/faculty"
 
 	// Get request
 	resp, err := http.Get(url)

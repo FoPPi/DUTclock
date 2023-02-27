@@ -39,7 +39,7 @@ func GroupJSONtoString(value string) []string {
 
 // TakeGroup читает GroupJSON из url
 func TakeGroup(FacultyID, CourseID int) (*GroupJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v4/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
+	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
 
 	// Get request
 	resp, err := http.Get(url)

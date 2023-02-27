@@ -49,6 +49,8 @@ func ReadUserConf() {
 	LastUpdate = SettingsJSON.DutInfo.LastUpdate
 
 	LastTabID = SettingsJSON.LastTabID
+
+	LastApiVersion = SettingsJSON.LastApiVersion
 }
 
 func WriteUserConf() {
@@ -72,6 +74,7 @@ func WriteUserConf() {
 		LessonType:       LessonType,
 		SendNotification: SendNotification,
 		LastTabID:        LastTabID,
+		LastApiVersion:   LastApiVersion,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -96,6 +99,7 @@ type Settings struct {
 	LessonType       bool    `json:"lesson_type"`
 	SendNotification bool    `json:"send_notification"`
 	LastTabID        int     `json:"last_tab_id"`
+	LastApiVersion   int     `json:"last_api_version"`
 }
 
 type DutInfo struct {

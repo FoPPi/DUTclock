@@ -85,7 +85,7 @@ func main() {
 
 	// set size
 	w.Resize(fyne.NewSize(492, 492))
-	w.SetFixedSize(true)
+	//w.SetFixedSize(true)
 
 	// Time tab
 	//---------------------------------------------------------------------
@@ -101,6 +101,8 @@ func main() {
 	status, _ := Ping("google.com")
 	if status != 200 {
 		InternetExist = false
+	} else {
+		api.LastApiVersion = OwnLTSapi()
 	}
 
 	//update kit

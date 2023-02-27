@@ -176,7 +176,7 @@ func UpdateOfflineJSON() (Updated bool, error error) {
 func TakeWeek(Faculty, Course, Group int, Week string) (*WeekJSON, error) {
 
 	// 1/1/1576/NEXT
-	url := "https://dut-api.lwjerri.ml/v4/student-calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(api.LastApiVersion) + "/student-calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
 
 	// Get request
 	resp, err := http.Get(url)
@@ -375,4 +375,18 @@ func TakeDaysFromJSON() []string {
 		}
 	}
 	return strings.Split(strArr, " ")
+}
+
+func OwnLTSapi() int {
+
+	var count int = api.LastApiVersion
+	for true {
+		url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(count) + "/faculty"
+		resp, _ := http.Get(url)
+		if resp.StatusCode == 200 {
+			break
+		}
+		count++
+	}
+	return count
 }
