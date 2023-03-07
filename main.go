@@ -2,6 +2,7 @@ package main
 
 import (
 	api "DUTclock/WorkingWithAPI"
+	"DUTclock/mind"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
@@ -24,7 +25,7 @@ var (
 
 // UpdateTime Show time to pare
 func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.App) {
-	paraExist, paraName, diff := TakeTime(app)
+	paraExist, paraName, diff := mind.TakeTime(app)
 	if paraExist {
 		ParaNameLabel.SetText(paraName)
 		TimerLabel.SetText(diff.String())
@@ -35,8 +36,8 @@ func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.
 }
 
 // CheckConn try update WeekJson
-func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.Window, SendError bool) {
-	updated, err := UpdateOfflineJSON()
+func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.Window, sharedPrefs fyne.Preferences, SendError bool) {
+	updated, err := mind.UpdateOfflineJSON(sharedPrefs)
 	if updated {
 		t := time.Now().String()
 		api.LastUpdate = t[0:16]
@@ -78,7 +79,6 @@ func CheckUpdate(w fyne.Window) {
 func main() {
 	a := app.NewWithID("DUTclock")
 	w := a.NewWindow("DUTclock")
-
 	// set icon
 	ic, _ := fyne.LoadResourceFromPath("Icon.png")
 	w.SetIcon(ic)
@@ -90,26 +90,23 @@ func main() {
 	// Time tab
 	//---------------------------------------------------------------------
 
-	// add app name
-	//AppLabel := widget.NewLabel("DUTclock")
-
 	// add name of para and timer
 	ParaNameLabel := widget.NewLabel("")
 	TimerLabel := widget.NewLabel("")
 
 	// check internet connection
-	status, _ := Ping("google.com")
+	status, _ := mind.Ping("google.com")
 	if status != 200 {
 		InternetExist = false
 	} else {
-		api.LastApiVersion = OwnLTSapi()
+		api.LastApiVersion = mind.OwnLTSapi()
 	}
 
 	//update kit
 	OnlineLabel := widget.NewLabel("")
 	LastUpdateLabel := widget.NewLabel("")
 	UpdateButton := widget.NewButton("Update", func() {
-		CheckConn(OnlineLabel, LastUpdateLabel, w, true)
+		CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), true)
 		if InternetExist {
 			FacultySelector.Options = api.FacultyJSONtoString()
 		}
@@ -117,10 +114,10 @@ func main() {
 	UpdateButton.Hidden = true
 
 	// first call
-	api.ReadUserConf()
+	api.ReadUserConf(a.Preferences())
 	if api.GroupID != 0 {
 		UpdateButton.Hidden = false
-		CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+		CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
 		UpdateTime(ParaNameLabel, TimerLabel, a)
 		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
 	}
@@ -135,8 +132,8 @@ func main() {
 	// start checking connection every hour
 	go func() {
 		for range time.Tick(time.Hour / 2) {
-			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
-			arrCards = TakeRozkald("now")
+			CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
+			arrCards = mind.TakeRozkald("now", a.Preferences())
 		}
 	}()
 
@@ -147,12 +144,12 @@ func main() {
 			api.TakeGroupID(value)
 
 			UpdateButton.Hidden = false
-			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+			CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
 			UpdateTime(ParaNameLabel, TimerLabel, a)
-			api.WriteUserConf()
+			api.WriteUserConf(a.Preferences())
 
-			arrCards = TakeRozkald("now")
-			DateSelector.Options = TakeDaysFromJSON()
+			arrCards = mind.TakeRozkald("now", a.Preferences())
+			DateSelector.Options = mind.TakeDaysFromJSON(a.Preferences())
 			DateSelector.Selected = time.Now().Format("02.01.2006")
 		}
 	})
@@ -183,8 +180,8 @@ func main() {
 		GroupSelector.Selected = api.GroupName
 		CourseSelector.Selected = api.CourseName
 		FacultySelector.Selected = api.FacultyName
-		arrCards = TakeRozkald("now")
-		DateSelector.Options = TakeDaysFromJSON()
+		arrCards = mind.TakeRozkald("now", a.Preferences())
+		DateSelector.Options = mind.TakeDaysFromJSON(a.Preferences())
 		DateSelector.Selected = time.Now().Format("02.01.2006")
 		if InternetExist {
 			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
@@ -209,7 +206,7 @@ func main() {
 		} else if value == "Short" {
 			api.LessonName = false
 		}
-		api.WriteUserConf()
+		api.WriteUserConf(a.Preferences())
 		UpdateTime(ParaNameLabel, TimerLabel, a)
 	})
 
@@ -220,7 +217,7 @@ func main() {
 		} else if value == "Hide" {
 			api.LessonType = false
 		}
-		api.WriteUserConf()
+		api.WriteUserConf(a.Preferences())
 		UpdateTime(ParaNameLabel, TimerLabel, a)
 	})
 
@@ -231,7 +228,7 @@ func main() {
 		} else if value == "No" {
 			api.SendNotification = false
 		}
-		api.WriteUserConf()
+		api.WriteUserConf(a.Preferences())
 	})
 
 	s := settings.NewSettings()
@@ -328,12 +325,12 @@ func main() {
 				api.LastTabID = 3
 			}
 
-			api.WriteUserConf()
+			api.WriteUserConf(a.Preferences())
 		}
 
 	}
 	DateSelector.OnChanged = func(value string) {
-		arrCards = TakeRozkald(value)
+		arrCards = mind.TakeRozkald(value, a.Preferences())
 		tabs.Items[1].Content.Refresh()
 	}
 

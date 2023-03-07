@@ -3,31 +3,16 @@ package WorkingWithAPI
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
+	"fyne.io/fyne/v2"
 )
 
-func ReadUserConf() {
-	jsonFile, err := os.Open("files/SettingsJSON.json")
-	// if we os.Open returns an error then handle it
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+func ReadUserConf(sharedPrefs fyne.Preferences) {
+
+	value := sharedPrefs.String("SettingsJSON")
 
 	var SettingsJSON Settings
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	err = json.Unmarshal(byteValue, &SettingsJSON)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	err = jsonFile.Close()
+	err := json.Unmarshal([]byte(value), &SettingsJSON)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -53,7 +38,7 @@ func ReadUserConf() {
 	LastApiVersion = SettingsJSON.LastApiVersion
 }
 
-func WriteUserConf() {
+func WriteUserConf(sharedPrefs fyne.Preferences) {
 	data := &Settings{
 		DutInfo: DutInfo{
 			Faculty: Faculty{
@@ -82,15 +67,8 @@ func WriteUserConf() {
 		fmt.Printf("could not marshal json: %s\n", err)
 		return
 	}
+	sharedPrefs.SetString("SettingsJSON", string(jsonData))
 
-	var nestedDir = "files"
-	path := filepath.Join(".", nestedDir)
-	erro := os.MkdirAll(path, 0777)
-	if erro != nil {
-		log.Fatal(erro)
-	}
-
-	_ = ioutil.WriteFile("files/SettingsJSON.json", jsonData, 0644)
 }
 
 type Settings struct {

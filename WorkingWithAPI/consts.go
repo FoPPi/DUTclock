@@ -20,5 +20,5 @@ var (
 
 	LastApiVersion int = 0
 
-	Version string = "v3.1"
+	Version string = "v3.5"
 )
