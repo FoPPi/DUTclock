@@ -10,21 +10,25 @@ import (
 )
 
 func TakeGroupID(value string) {
-	GroupJson, _ := TakeGroup(FacultyID, CourseID)
+	sharedPrefs := App.Preferences()
 
-	GroupName = value
+	GroupJson, _ := TakeGroup(sharedPrefs.Int("FacultyID"), sharedPrefs.Int("CourseID"))
+
+	sharedPrefs.SetString("GroupName", value)
 	for _, rec := range GroupJson.Data {
 		if value == rec.Name {
-			GroupID = rec.Id
+			sharedPrefs.SetInt("GroupID", rec.Id)
+			break
 		}
 	}
 }
 
 func GroupJSONtoString(value string) []string {
+	sharedPrefs := App.Preferences()
 
 	TakeCourseID(value)
 
-	GroupJson, _ := TakeGroup(FacultyID, CourseID)
+	GroupJson, _ := TakeGroup(sharedPrefs.Int("FacultyID"), sharedPrefs.Int("CourseID"))
 
 	sArr := make([]string, len(GroupJson.Data))
 	counter := 0
@@ -39,7 +43,7 @@ func GroupJSONtoString(value string) []string {
 
 // TakeGroup читает GroupJSON из url
 func TakeGroup(FacultyID, CourseID int) (*GroupJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
+	url := ApiURL + "/v" + strconv.Itoa(App.Preferences().Int("LastApiVersion")) + "/group/" + strconv.Itoa(FacultyID) + "/" + strconv.Itoa(CourseID)
 
 	// Get request
 	resp, err := http.Get(url)

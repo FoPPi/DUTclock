@@ -16,68 +16,21 @@ import (
 
 var (
 	InternetExist   bool = true
-	FacultySelector      = widget.NewSelect([]string{}, func(value string) {})
-	CourseSelector       = widget.NewSelect([]string{}, func(value string) {})
-	GroupSelector        = widget.NewSelect([]string{}, func(value string) {})
-	DateSelector         = widget.NewSelect([]string{}, func(value string) {})
+	FacultySelector      = widget.NewSelect(nil, nil)
+	CourseSelector       = widget.NewSelect(nil, nil)
+	GroupSelector        = widget.NewSelect(nil, nil)
+	DateSelector         = widget.NewSelect(nil, nil)
 	arrCards             = [5]widget.Card{}
+	ParaNameLabel        = widget.NewLabel("")
+	TimerLabel           = widget.NewLabel("")
+	OnlineLabel          = widget.NewLabel("")
+	LastUpdateLabel      = widget.NewLabel("")
+	UpdateButton         = widget.NewButton("Update", nil)
 )
-
-// UpdateTime Show time to pare
-func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label, app fyne.App) {
-	paraExist, paraName, diff := mind.TakeTime(app)
-	if paraExist {
-		ParaNameLabel.SetText(paraName)
-		TimerLabel.SetText(diff.String())
-	} else {
-		ParaNameLabel.SetText(paraName)
-		TimerLabel.SetText("")
-	}
-}
-
-// CheckConn try update WeekJson
-func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.Window, sharedPrefs fyne.Preferences, SendError bool) {
-	updated, err := mind.UpdateOfflineJSON(sharedPrefs)
-	if updated {
-		t := time.Now().String()
-		api.LastUpdate = t[0:16]
-		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
-		OnlineLabel.SetText("Online")
-
-		if !InternetExist {
-			FacultySelector.Options = api.FacultyJSONtoString()
-			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
-			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
-			InternetExist = true
-
-			CheckUpdate(w)
-
-		}
-	} else {
-		if SendError {
-			dialog.ShowError(err, w)
-		}
-
-		OnlineLabel.SetText("Offline")
-	}
-}
-
-func CheckUpdate(w fyne.Window) {
-	newVersion, release := api.CheckUpdateOnGitHub()
-	if newVersion {
-		dialog.ShowConfirm("Update", "New version available", func(b bool) {
-			if b {
-				err := browser.OpenURL(release)
-				if err != nil {
-					println(err)
-				}
-			}
-		}, w)
-	}
-}
 
 func main() {
 	a := app.NewWithID("DUTclock")
+	api.App = a
 	w := a.NewWindow("DUTclock")
 	// set icon
 	ic, _ := fyne.LoadResourceFromPath("Icon.png")
@@ -87,70 +40,131 @@ func main() {
 	w.Resize(fyne.NewSize(492, 492))
 	//w.SetFixedSize(true)
 
-	// Time tab
-	//---------------------------------------------------------------------
-
-	// add name of para and timer
-	ParaNameLabel := widget.NewLabel("")
-	TimerLabel := widget.NewLabel("")
-
 	// check internet connection
 	status, _ := mind.Ping("google.com")
 	if status != 200 {
 		InternetExist = false
 	} else {
-		api.LastApiVersion = mind.OwnLTSapi()
+		mind.OwnLTSapi()
 	}
 
-	//update kit
-	OnlineLabel := widget.NewLabel("")
-	LastUpdateLabel := widget.NewLabel("")
-	UpdateButton := widget.NewButton("Update", func() {
-		CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), true)
-		if InternetExist {
-			FacultySelector.Options = api.FacultyJSONtoString()
+	tabs := container.NewAppTabs(
+		TimeTab(w),
+		CalendarTab(),
+		SettingsTab(w),
+		AppearanceTab(w),
+	)
+	sharedPrefs := a.Preferences()
+
+	tabs.Select(tabs.Items[sharedPrefs.Int("LastTabID")])
+
+	// Refresh theme
+	tabs.OnSelected = func(t *container.TabItem) {
+		t.Content.Refresh()
+		if sharedPrefs.Int("GroupID") != 0 {
+			switch t.Text {
+			case "Time":
+				sharedPrefs.SetInt("LastTabID", 0)
+				break
+			case "Calendar":
+				sharedPrefs.SetInt("LastTabID", 1)
+				break
+			case "Settings":
+				sharedPrefs.SetInt("LastTabID", 2)
+				break
+			case "Appearance":
+				sharedPrefs.SetInt("LastTabID", 3)
+				break
+			}
 		}
-	})
-	UpdateButton.Hidden = true
 
-	// first call
-	api.ReadUserConf(a.Preferences())
-	if api.GroupID != 0 {
-		UpdateButton.Hidden = false
-		CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
-		UpdateTime(ParaNameLabel, TimerLabel, a)
-		LastUpdateLabel.SetText("Updated: " + api.LastUpdate)
+	}
+	DateSelector.OnChanged = func(value string) {
+		arrCards = mind.TakeRozkald(value)
+		tabs.Items[1].Content.Refresh()
 	}
 
+	tabs.Refresh()
+	w.SetContent(tabs)
+
+	// show window
+	w.ShowAndRun()
+
+}
+
+func TimeTab(w fyne.Window) *container.TabItem {
 	// start update timer every minute
 	go func() {
-		for range time.Tick(time.Minute) {
-			UpdateTime(ParaNameLabel, TimerLabel, a)
+		updateTicker := time.NewTicker(time.Minute)
+		for range updateTicker.C {
+			UpdateTime(ParaNameLabel, TimerLabel)
 		}
 	}()
+
+	if UpdateButton == nil {
+		UpdateButton = widget.NewButton("Update", func() {
+			CheckConn(OnlineLabel, LastUpdateLabel, w, true)
+			if InternetExist {
+				FacultySelector.Options = api.FacultyJSONtoString()
+			}
+		})
+		UpdateButton.Hide()
+	}
+	sharedPrefs := api.App.Preferences()
+	// first call
+	if sharedPrefs.Int("GroupID") != 0 {
+		UpdateButton.Show()
+		CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+		UpdateTime(ParaNameLabel, TimerLabel)
+		LastUpdateLabel.SetText("Updated: " + sharedPrefs.String("LastUpdate"))
+	}
+
+	connTicker := time.NewTicker(time.Hour / 2)
+	defer connTicker.Stop()
 
 	// start checking connection every hour
 	go func() {
-		for range time.Tick(time.Hour / 2) {
-			CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
-			arrCards = mind.TakeRozkald("now", a.Preferences())
+		for range connTicker.C {
+			CheckConn(OnlineLabel, LastUpdateLabel, w, false)
+			arrCards = mind.TakeRozkald("now")
 		}
 	}()
 
+	return container.NewTabItem("Time", container.NewCenter(container.NewVBox(
+		container.NewVBox(container.NewCenter(ParaNameLabel)),
+		container.NewVBox(container.NewCenter(TimerLabel)),
+		container.NewVBox(container.NewCenter(LastUpdateLabel)),
+		container.NewVBox(container.NewCenter(UpdateButton)),
+		container.NewVBox(container.NewCenter(OnlineLabel)),
+	)))
+}
+
+func CalendarTab() *container.TabItem {
+
+	grid := container.New(layout.NewGridLayout(1), &arrCards[0], &arrCards[1], &arrCards[2], &arrCards[3], &arrCards[4])
+
+	return container.NewTabItem("Calendar", container.NewVBox(DateSelector, grid))
+}
+
+func SettingsTab(w fyne.Window) *container.TabItem {
+	sharedPrefs := api.App.Preferences()
 	// add selectors
 	GroupLabel := widget.NewLabel("Group")
 	GroupSelector = widget.NewSelect([]string{}, func(value string) {
-		if value != api.GroupName {
+		if value != sharedPrefs.String("GroupName") {
 			api.TakeGroupID(value)
 
 			UpdateButton.Hidden = false
-			CheckConn(OnlineLabel, LastUpdateLabel, w, a.Preferences(), false)
-			UpdateTime(ParaNameLabel, TimerLabel, a)
-			api.WriteUserConf(a.Preferences())
 
-			arrCards = mind.TakeRozkald("now", a.Preferences())
-			DateSelector.Options = mind.TakeDaysFromJSON(a.Preferences())
+			_, err := mind.UpdateOfflineJSON()
+			if err != nil {
+				dialog.ShowError(err, w)
+			}
+
+			arrCards = mind.TakeRozkald("now")
+			DateSelector.Options = mind.TakeDaysFromJSON()
 			DateSelector.Selected = time.Now().Format("02.01.2006")
+
 		}
 	})
 
@@ -162,7 +176,7 @@ func main() {
 
 	FacultyLabel := widget.NewLabel("Faculty")
 	FacultySelector = widget.NewSelect([]string{}, func(value string) {
-		if value != api.FacultyName {
+		if value != sharedPrefs.String("FacultyName") {
 			GroupSelector.Options = []string{}
 			CourseSelector.Selected = ""
 			GroupSelector.Selected = ""
@@ -176,167 +190,151 @@ func main() {
 	}
 
 	// add selectors names if is not first start
-	if api.GroupID != 0 {
-		GroupSelector.Selected = api.GroupName
-		CourseSelector.Selected = api.CourseName
-		FacultySelector.Selected = api.FacultyName
-		arrCards = mind.TakeRozkald("now", a.Preferences())
-		DateSelector.Options = mind.TakeDaysFromJSON(a.Preferences())
+	if sharedPrefs.Int("GroupID") != 0 {
+		GroupSelector.Selected = sharedPrefs.String("GroupName")
+		CourseSelector.Selected = sharedPrefs.String("CourseName")
+		FacultySelector.Selected = sharedPrefs.String("FacultyName")
+		arrCards = mind.TakeRozkald("now")
+		DateSelector.Options = mind.TakeDaysFromJSON()
 		DateSelector.Selected = time.Now().Format("02.01.2006")
-		if InternetExist {
-			CourseSelector.Options = api.CourseJSONtoString(api.FacultyName)
-			GroupSelector.Options = api.GroupJSONtoString(api.CourseName)
+
+		if InternetExist && len(CourseSelector.Options) == 0 {
+			CourseSelector.Options = api.CourseJSONtoString(sharedPrefs.String("FacultyName"))
+			GroupSelector.Options = api.GroupJSONtoString(sharedPrefs.String("CourseName"))
 		}
 	}
-
-	//Calendar tab
-	//---------------------------------------------------------------------
-
-	//add grid
-
-	grid := container.New(layout.NewGridLayout(1), &arrCards[0], &arrCards[1], &arrCards[2], &arrCards[3], &arrCards[4])
-
-	//Settings tab
-	//---------------------------------------------------------------------
 
 	LessonNameLabel := widget.NewLabel("Lesson Name")
 	LessonNameRadio := widget.NewRadioGroup([]string{"Long", "Short"}, func(value string) {
 		if value == "Long" {
-			api.LessonName = true
+			sharedPrefs.SetBool("LessonName", true)
 		} else if value == "Short" {
-			api.LessonName = false
+			sharedPrefs.SetBool("LessonName", false)
 		}
-		api.WriteUserConf(a.Preferences())
-		UpdateTime(ParaNameLabel, TimerLabel, a)
+		UpdateTime(ParaNameLabel, TimerLabel)
 	})
 
 	LessonTypeLabel := widget.NewLabel("Lesson Type")
 	LessonTypeRadio := widget.NewRadioGroup([]string{"Show", "Hide"}, func(value string) {
 		if value == "Show" {
-			api.LessonType = true
+			sharedPrefs.SetBool("LessonType", true)
 		} else if value == "Hide" {
-			api.LessonType = false
+			sharedPrefs.SetBool("LessonType", false)
 		}
-		api.WriteUserConf(a.Preferences())
-		UpdateTime(ParaNameLabel, TimerLabel, a)
+		UpdateTime(ParaNameLabel, TimerLabel)
 	})
 
 	SendNotificationLabel := widget.NewLabel("Send Notif")
 	SendNotificationRadio := widget.NewRadioGroup([]string{"Yes", "No"}, func(value string) {
 		if value == "Yes" {
-			api.SendNotification = true
+			sharedPrefs.SetBool("SendNotification", true)
 		} else if value == "No" {
-			api.SendNotification = false
+			sharedPrefs.SetBool("SendNotification", false)
 		}
-		api.WriteUserConf(a.Preferences())
 	})
+
+	if sharedPrefs.Bool("LessonName") == true {
+		LessonNameRadio.Selected = "Long"
+	} else {
+		LessonNameRadio.Selected = "Short"
+	}
+
+	if sharedPrefs.Bool("LessonType") == true {
+		LessonTypeRadio.Selected = "Show"
+	} else {
+		LessonTypeRadio.Selected = "Hide"
+	}
+
+	if sharedPrefs.Bool("SendNotification") == true {
+		SendNotificationRadio.Selected = "Yes"
+	} else {
+		SendNotificationRadio.Selected = "No"
+	}
+
+	return container.NewTabItem("Settings", container.NewVBox(
+		container.NewVBox(
+			FacultyLabel,
+			FacultySelector,
+			CourseLabel,
+			CourseSelector,
+			GroupLabel,
+			GroupSelector,
+		),
+		container.NewCenter(
+			container.NewHBox(
+				container.NewVBox(
+					LessonNameLabel,
+					LessonNameRadio,
+				),
+				container.NewVBox(
+					LessonTypeLabel,
+					LessonTypeRadio,
+				),
+				container.NewVBox(
+					SendNotificationLabel,
+					SendNotificationRadio,
+				),
+			),
+		)))
+}
+
+func AppearanceTab(w fyne.Window) *container.TabItem {
 
 	s := settings.NewSettings()
 	appearance := s.LoadAppearanceScreen(w)
 
-	if api.LessonName == true {
-		LessonNameRadio.Selected = "Long"
-	} else if api.LessonName == false {
-		LessonNameRadio.Selected = "Short"
+	return &container.TabItem{Text: "Appearance", Content: appearance}
+}
+
+// UpdateTime Show time to pare
+func UpdateTime(ParaNameLabel *widget.Label, TimerLabel *widget.Label) {
+	paraExist, paraName, diff := mind.TakeTime()
+	ParaNameLabel.SetText(paraName)
+	if paraExist {
+		TimerLabel.SetText(diff.String())
+	} else {
+		TimerLabel.SetText("")
 	}
+}
 
-	if api.LessonType == true {
-		LessonTypeRadio.Selected = "Show"
-	} else if api.LessonType == false {
-		LessonTypeRadio.Selected = "Hide"
-	}
+// CheckConn try update WeekJson
+func CheckConn(OnlineLabel *widget.Label, LastUpdateLabel *widget.Label, w fyne.Window, SendError bool) {
+	sharedPrefs := api.App.Preferences()
+	updated, err := mind.UpdateOfflineJSON()
+	if updated {
+		t := time.Now().String()
+		sharedPrefs.SetString("LastUpdate", t[0:16])
+		LastUpdateLabel.SetText("Updated: " + sharedPrefs.String("LastUpdate"))
+		OnlineLabel.SetText("Online")
 
-	if api.SendNotification == true {
-		SendNotificationRadio.Selected = "Yes"
-	} else if api.SendNotification == false {
-		SendNotificationRadio.Selected = "No"
-	}
+		if !InternetExist {
+			FacultySelector.Options = api.FacultyJSONtoString()
+			CourseSelector.Options = api.CourseJSONtoString(sharedPrefs.String("FacultyName"))
+			GroupSelector.Options = api.GroupJSONtoString(sharedPrefs.String("CourseName"))
+			InternetExist = true
 
-	// Add content
-	//---------------------------------------------------------------------
-
-	tabs := container.NewAppTabs(
-		container.NewTabItem("Time", container.NewCenter(container.NewVBox(
-			//container.NewVBox(container.NewCenter(
-			//	AppLabel,
-			//)),
-
-			container.NewVBox(container.NewCenter(
-				ParaNameLabel,
-			)),
-			container.NewVBox(container.NewCenter(
-				TimerLabel,
-			)),
-			container.NewVBox(container.NewCenter(
-				LastUpdateLabel,
-			)),
-			container.NewVBox(container.NewCenter(
-				UpdateButton,
-			)),
-			container.NewVBox(container.NewCenter(
-				OnlineLabel,
-			)),
-		))),
-		container.NewTabItem("Calendar", container.NewVBox(DateSelector, grid)),
-		container.NewTabItem("Settings", container.NewVBox(
-			container.NewVBox(
-				FacultyLabel,
-				FacultySelector,
-				CourseLabel,
-				CourseSelector,
-				GroupLabel,
-				GroupSelector,
-			),
-			container.NewCenter(
-				container.NewHBox(
-					container.NewVBox(
-						LessonNameLabel,
-						LessonNameRadio,
-					),
-					container.NewVBox(
-						LessonTypeLabel,
-						LessonTypeRadio,
-					),
-					container.NewVBox(
-						SendNotificationLabel,
-						SendNotificationRadio,
-					),
-				),
-			))),
-		&container.TabItem{Text: "Appearance", Content: appearance},
-	)
-
-	tabs.Select(tabs.Items[api.LastTabID])
-
-	// Refresh theme
-	tabs.OnSelected = func(t *container.TabItem) {
-		t.Content.Refresh()
-
-		if api.GroupID != 0 {
-			switch t.Text {
-			case "Time":
-				api.LastTabID = 0
-				break
-			case "Calendar":
-				api.LastTabID = 1
-			case "Settings":
-				api.LastTabID = 2
-			case "Appearance":
-				api.LastTabID = 3
-			}
-
-			api.WriteUserConf(a.Preferences())
+			CheckUpdate(w)
+		}
+	} else {
+		if SendError {
+			dialog.ShowError(err, w)
 		}
 
+		OnlineLabel.SetText("Offline")
 	}
-	DateSelector.OnChanged = func(value string) {
-		arrCards = mind.TakeRozkald(value, a.Preferences())
-		tabs.Items[1].Content.Refresh()
+}
+
+// CheckUpdate check update on GitHub
+func CheckUpdate(w fyne.Window) {
+	newVersion, release := api.CheckUpdateOnGitHub()
+	if newVersion {
+		dialog.ShowConfirm("Update", "New version available", func(b bool) {
+			if b {
+				err := browser.OpenURL(release)
+				if err != nil {
+					println(err)
+				}
+			}
+		}, w)
 	}
-
-	w.SetContent(tabs)
-
-	// show window
-	w.ShowAndRun()
-
 }

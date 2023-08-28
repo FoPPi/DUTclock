@@ -8,4 +8,4 @@ Shows the time until the beginning / end of the lesson
 - Settings
 - Appearance
 - Auto update
-- Available on Windows, macOS, Linux, Android and IOS
+- Available on Windows, macOS, Linux, Android

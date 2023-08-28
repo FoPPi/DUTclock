@@ -29,10 +29,11 @@ func Ping(domain string) (int, error) {
 	return resp.StatusCode, nil
 }
 
-func OwnLTSapi() int {
-	count := api.LastApiVersion
+func OwnLTSapi() {
+	sharedPrefs := api.App.Preferences()
+	count := sharedPrefs.Int("LastApiVersion")
 	for {
-		url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(count) + "/faculty"
+		url := api.ApiURL + "/v" + strconv.Itoa(count) + "/faculty"
 		resp, err := http.Get(url)
 		if err != nil {
 			log.Fatal(err)
@@ -48,5 +49,5 @@ func OwnLTSapi() int {
 		}
 		count++
 	}
-	return count
+	sharedPrefs.SetInt("LastApiVersion", count)
 }

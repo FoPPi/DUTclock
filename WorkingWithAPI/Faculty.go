@@ -12,10 +12,12 @@ import (
 func TakeFacultyID(value string) {
 	faculty, _ := TakeFaculty()
 
-	FacultyName = value
+	sharedPrefs := App.Preferences()
+	sharedPrefs.SetString("FacultyName", value)
 	for _, rec := range faculty.Data {
 		if value == rec.Name {
-			FacultyID = rec.Id
+			sharedPrefs.SetInt("FacultyID", rec.Id)
+			break
 		}
 	}
 
@@ -37,7 +39,7 @@ func FacultyJSONtoString() []string {
 
 // TakeFaculty читает FacultyJSON из url
 func TakeFaculty() (*FacultyJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/faculty"
+	url := ApiURL + "/v" + strconv.Itoa(App.Preferences().Int("LastApiVersion")) + "/faculty"
 
 	// Get request
 	resp, err := http.Get(url)

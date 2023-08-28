@@ -4,7 +4,6 @@ import (
 	api "DUTclock/WorkingWithAPI"
 	"encoding/json"
 	"fmt"
-	"fyne.io/fyne/v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,8 +11,8 @@ import (
 )
 
 // ReadOfflineJSON читает json файл
-func ReadOfflineJSON(jsonName string, sharedPrefs fyne.Preferences) WeekJSON {
-
+func ReadOfflineJSON(jsonName string) WeekJSON {
+	sharedPrefs := api.App.Preferences()
 	value := sharedPrefs.String(jsonName)
 
 	var Week WeekJSON
@@ -34,8 +33,13 @@ func (m *MyError) Error() string {
 }
 
 // UpdateOfflineJSON читает json из url и записывет его в файл
-func UpdateOfflineJSON(sharedPrefs fyne.Preferences) (Updated bool, error error) {
-	CURRENT, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "CURRENT")
+func UpdateOfflineJSON() (Updated bool, error error) {
+	sharedPrefs := api.App.Preferences()
+	FacultyID := sharedPrefs.Int("FacultyID")
+	CourseID := sharedPrefs.Int("CourseID")
+	GroupID := sharedPrefs.Int("GroupID")
+
+	CURRENT, err := TakeWeek(FacultyID, CourseID, GroupID, "CURRENT")
 	if err != nil {
 		return false, &MyError{}
 	}
@@ -43,7 +47,7 @@ func UpdateOfflineJSON(sharedPrefs fyne.Preferences) (Updated bool, error error)
 
 	sharedPrefs.SetString("CURRENT_WeekJSON", string(file1))
 
-	NEXT, err := TakeWeek(api.FacultyID, api.CourseID, api.GroupID, "NEXT")
+	NEXT, err := TakeWeek(FacultyID, CourseID, GroupID, "NEXT")
 	if err != nil {
 		return false, &MyError{}
 	}
@@ -58,7 +62,7 @@ func UpdateOfflineJSON(sharedPrefs fyne.Preferences) (Updated bool, error error)
 func TakeWeek(Faculty, Course, Group int, Week string) (*WeekJSON, error) {
 
 	// 1/1/1576/NEXT
-	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(api.LastApiVersion) + "/student-calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
+	url := api.ApiURL + "/v" + strconv.Itoa(api.App.Preferences().Int("LastApiVersion")) + "/student-calendar/" + strconv.Itoa(Faculty) + "/" + strconv.Itoa(Course) + "/" + strconv.Itoa(Group) + "/" + Week
 
 	// Get request
 	resp, err := http.Get(url)

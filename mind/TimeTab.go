@@ -10,7 +10,8 @@ import (
 )
 
 // TakeTime показывет сколько до начала/конца пары (надо оптимизировать)
-func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration) {
+func TakeTime() (paraExist bool, paraName string, diff time.Duration) {
+	app := api.App
 	dateNow := time.Now()
 
 	if isWeekend(dateNow) {
@@ -24,7 +25,7 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 	}
 
 	for _, jsonName := range []string{"CURRENT_WeekJSON", "NEXT_WeekJSON"} {
-		result := ReadOfflineJSON(jsonName, app.Preferences())
+		result := ReadOfflineJSON(jsonName)
 		for _, rec := range result.Data {
 			StartTime, err := time.Parse("15:04 02.01.2006", rec.StartAt+" "+rec.LessonDate)
 			if err != nil {
@@ -40,13 +41,13 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 				continue
 			}
 			paraName, paraType := rec.LessonShortName, ""
-			if api.LessonName {
+			if app.Preferences().Bool("LessonName") {
 				paraName = rec.LessonLongName
 			}
-			if api.LessonType {
+			if app.Preferences().Bool("LessonType") {
 				paraType = "[" + rec.LessonType + "]"
 			}
-			if api.SendNotification {
+			if app.Preferences().Bool("SendNotification") {
 				if StartTime.Equal(dateNowParsed) {
 					app.SendNotification(fyne.NewNotification("Пара почалася", PrettyPrint(paraName+" "+paraType)))
 				} else if FinishTime.Equal(dateNowParsed) {
@@ -61,7 +62,7 @@ func TakeTime(app fyne.App) (paraExist bool, paraName string, diff time.Duration
 				return true, "До кінця: " + PrettyPrint(paraName+" "+paraType), diff
 			}
 		}
-		result = ReadOfflineJSON("NEXT_WeekJSON", app.Preferences())
+		result = ReadOfflineJSON("NEXT_WeekJSON")
 	}
 	return false, "Пари закінчилися :)", diff
 }

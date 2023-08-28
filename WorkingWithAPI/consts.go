@@ -1,24 +1,11 @@
 package WorkingWithAPI
 
+import "fyne.io/fyne/v2"
+
 var (
-	FacultyName string = ""
-	FacultyID   int    = 0
+	App fyne.App
 
-	CourseName string = ""
-	CourseID   int    = 0
+	ApiURL = "https://dut-api.p.lwjerri.dev"
 
-	GroupName string = ""
-	GroupID   int    = 0
-
-	LastUpdate string = ""
-
-	LessonName       bool = true // true - long | false - short
-	LessonType       bool = true // true - show | false - hide
-	SendNotification bool = true // true - send | false - hide
-
-	LastTabID int = 2
-
-	LastApiVersion int = 0
-
-	Version string = "v3.5"
+	Version string = "v3.6"
 )

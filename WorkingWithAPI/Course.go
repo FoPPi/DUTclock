@@ -10,12 +10,14 @@ import (
 )
 
 func TakeCourseID(value string) {
-	CourseJson, _ := TakeCourse(FacultyID)
+	CourseJson, _ := TakeCourse(App.Preferences().Int("FacultyID"))
 
-	CourseName = value
+	sharedPrefs := App.Preferences()
+	sharedPrefs.SetString("CourseName", value)
 	for _, rec := range CourseJson.Data {
 		if value == rec.Name {
-			CourseID = rec.Id
+			sharedPrefs.SetInt("CourseID", rec.Id)
+			break
 		}
 	}
 }
@@ -24,7 +26,7 @@ func CourseJSONtoString(value string) []string {
 
 	TakeFacultyID(value)
 
-	CourseJson, _ := TakeCourse(FacultyID)
+	CourseJson, _ := TakeCourse(App.Preferences().Int("FacultyID"))
 
 	sArr := make([]string, len(CourseJson.Data))
 	counter := 0
@@ -39,7 +41,7 @@ func CourseJSONtoString(value string) []string {
 
 // TakeCourse читает CourseJSON из url
 func TakeCourse(FacultyID int) (*CourseJSON, error) {
-	url := "https://dut-api.lwjerri.ml/v" + strconv.Itoa(LastApiVersion) + "/course/" + strconv.Itoa(FacultyID)
+	url := ApiURL + "/v" + strconv.Itoa(App.Preferences().Int("LastApiVersion")) + "/course/" + strconv.Itoa(FacultyID)
 
 	// Get request
 	resp, err := http.Get(url)

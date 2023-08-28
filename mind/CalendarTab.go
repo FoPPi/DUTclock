@@ -2,14 +2,13 @@ package mind
 
 import (
 	"fmt"
-	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
 	"time"
 )
 
-func TakeRozkald(selectedDate string, sharedPrefs fyne.Preferences) (Cards [5]widget.Card) {
+func TakeRozkald(selectedDate string) (Cards [5]widget.Card) {
 	var (
 		nowParsedDate time.Time
 		result        WeekJSON
@@ -25,7 +24,7 @@ func TakeRozkald(selectedDate string, sharedPrefs fyne.Preferences) (Cards [5]wi
 	}
 
 	for _, jsonName := range WeekTypes {
-		result = ReadOfflineJSON(jsonName, sharedPrefs)
+		result = ReadOfflineJSON(jsonName)
 
 		for _, rec := range result.Data {
 			paraDate, err := time.Parse("02.01.2006", rec.LessonDate)
@@ -64,12 +63,13 @@ func TakeRozkald(selectedDate string, sharedPrefs fyne.Preferences) (Cards [5]wi
 	return [5]widget.Card{}
 }
 
-func TakeDaysFromJSON(sharedPrefs fyne.Preferences) []string {
+func TakeDaysFromJSON() []string {
+
 	dates := make(map[string]bool)
 	var days []string
 
 	for _, jsonName := range []string{"CURRENT_WeekJSON", "NEXT_WeekJSON"} {
-		result := ReadOfflineJSON(jsonName, sharedPrefs)
+		result := ReadOfflineJSON(jsonName)
 		for _, rec := range result.Data {
 			if _, ok := dates[rec.LessonDate]; !ok {
 				dates[rec.LessonDate] = true
